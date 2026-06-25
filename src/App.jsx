@@ -110,13 +110,6 @@ export default function App() {
     return () => clearTimeout(t)
   }, [printQueued])
 
-  // Save after state settles (e.g. once items were marked Unused).
-  useEffect(() => {
-    if (!saveQueued) return
-    setSaveQueued(false)
-    doSave()
-  }, [saveQueued, doSave])
-
   /* --------------------------------- Auth --------------------------------- */
   const handleAuthed = useCallback((u) => {
     setUser(u)
@@ -278,6 +271,14 @@ export default function App() {
       setSaving(false)
     }
   }, [state, calc.grandTotal, refreshInvoices])
+
+  // Save after state settles (e.g. once items were marked Unused).
+  // Declared here, after doSave, to avoid a temporal-dead-zone reference.
+  useEffect(() => {
+    if (!saveQueued) return
+    setSaveQueued(false)
+    doSave()
+  }, [saveQueued, doSave])
 
   // Block saving when any hardware item is "missed" (no qty and not Unused).
   const handleSaveInvoice = useCallback(() => {
