@@ -41,8 +41,9 @@ export default function MissingItemsModal({
                   {isSave ? "Can't save — some items are not added" : 'Some items are not added'}
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  These hardware items have no quantity and aren’t marked “Unused”.
-                  {isSave ? ' Add a quantity or tick “Unused” to save.' : ''}
+                  {isSave
+                    ? 'Please review each item below — add a quantity if you’re using it, or tick “Unused” if you’re not. The invoice can only be saved once every item is handled.'
+                    : 'These hardware items have no quantity and aren’t marked “Unused”.'}
                 </p>
               </div>
               <button
@@ -78,24 +79,28 @@ export default function MissingItemsModal({
               >
                 Go Back & Review
               </button>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onMarkUnused}
-                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-                >
-                  <Ban size={15} /> Mark all Unused & {verb}
-                </button>
-                {onContinueAnyway && (
-                  <button
-                    type="button"
-                    onClick={onContinueAnyway}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-                  >
-                    <ContinueIcon size={15} /> {verb} Anyway
-                  </button>
-                )}
-              </div>
+              {(onMarkUnused || onContinueAnyway) && (
+                <div className="flex gap-2">
+                  {onMarkUnused && (
+                    <button
+                      type="button"
+                      onClick={onMarkUnused}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                    >
+                      <Ban size={15} /> Mark all Unused & {verb}
+                    </button>
+                  )}
+                  {onContinueAnyway && (
+                    <button
+                      type="button"
+                      onClick={onContinueAnyway}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                    >
+                      <ContinueIcon size={15} /> {verb} Anyway
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>

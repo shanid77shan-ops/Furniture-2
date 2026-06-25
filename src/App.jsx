@@ -465,7 +465,7 @@ export default function App() {
         context={missingContext}
         items={calc.missingHardware}
         onClose={() => setMissingOpen(false)}
-        onMarkUnused={handleMarkUnusedAndContinue}
+        onMarkUnused={missingContext === 'print' ? handleMarkUnusedAndContinue : null}
         onContinueAnyway={missingContext === 'print' ? handlePrintAnyway : null}
       />
 
