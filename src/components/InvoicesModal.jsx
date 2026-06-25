@@ -1,8 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, FileText, Trash2, FolderOpen, Loader2, Inbox } from 'lucide-react'
+import { X, FileText, Trash2, Pencil, Loader2, Inbox, Receipt, IndianRupee, Calendar } from 'lucide-react'
 import { formatCurrency } from '../utils/format'
 
-export default function InvoicesModal({ open, onClose, invoices, loading, onLoad, onDelete }) {
+export default function InvoicesModal({
+  open,
+  onClose,
+  invoices,
+  loading,
+  editingId,
+  onEdit,
+  onDelete,
+}) {
   const fmtDate = (d) =>
     new Date(d).toLocaleString('en-IN', {
       day: '2-digit',
@@ -11,6 +19,13 @@ export default function InvoicesModal({ open, onClose, invoices, loading, onLoad
       hour: '2-digit',
       minute: '2-digit',
     })
+
+  const totalValue = invoices.reduce((sum, i) => sum + (Number(i.grand_total) || 0), 0)
+  const now = new Date()
+  const monthCount = invoices.filter((i) => {
+    const d = new Date(i.created_at)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  }).length
 
   return (
     <AnimatePresence>
@@ -36,8 +51,8 @@ export default function InvoicesModal({ open, onClose, invoices, loading, onLoad
                   <FileText size={18} />
                 </span>
                 <div>
-                  <h2 className="text-base font-semibold text-slate-800">Saved Invoices</h2>
-                  <p className="text-xs text-slate-500">Load a past quotation or remove it.</p>
+                  <h2 className="text-base font-semibold text-slate-800">Invoice Report</h2>
+                  <p className="text-xs text-slate-500">View, edit or delete saved invoices.</p>
                 </div>
               </div>
               <button
@@ -47,6 +62,28 @@ export default function InvoicesModal({ open, onClose, invoices, loading, onLoad
               >
                 <X size={18} />
               </button>
+            </div>
+
+            {/* Small summary report */}
+            <div className="grid grid-cols-3 gap-px border-b border-slate-200 bg-slate-200">
+              <div className="bg-white px-4 py-3">
+                <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-slate-400">
+                  <Receipt size={12} /> Invoices
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-slate-800">{invoices.length}</p>
+              </div>
+              <div className="bg-white px-4 py-3">
+                <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-slate-400">
+                  <IndianRupee size={12} /> Total Value
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-slate-800">{formatCurrency(totalValue)}</p>
+              </div>
+              <div className="bg-white px-4 py-3">
+                <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-slate-400">
+                  <Calendar size={12} /> This Month
+                </p>
+                <p className="mt-0.5 text-lg font-bold text-slate-800">{monthCount}</p>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
@@ -64,38 +101,51 @@ export default function InvoicesModal({ open, onClose, invoices, loading, onLoad
                   {invoices.map((inv) => (
                     <li
                       key={inv.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3"
+                      className={`rounded-xl border bg-white px-4 py-3 transition ${
+                        inv.id === editingId ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
+                      }`}
                     >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-800">
-                          {inv.quote_number || 'Quotation'}
-                          {inv.project_name ? ` · ${inv.project_name}` : ''}
-                        </p>
-                        <p className="truncate text-xs text-slate-400">
-                          {inv.client_name ? `${inv.client_name} · ` : ''}
-                          {fmtDate(inv.created_at)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <span className="text-sm font-bold text-slate-700">
-                          {formatCurrency(Number(inv.grand_total) || 0)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => onLoad(inv.id)}
-                          title="Load into form"
-                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
-                        >
-                          <FolderOpen size={14} /> Load
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(inv.id)}
-                          title="Delete invoice"
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">
+                            {inv.quote_number || 'Invoice'}
+                            {inv.id === editingId && (
+                              <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                                editing
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-slate-500">
+                            {inv.project_name || 'Untitled project'}
+                            {inv.client_name ? ` · ${inv.client_name}` : ''}
+                          </p>
+                          <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                            {fmtDate(inv.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          <span className="text-base font-bold text-slate-800">
+                            {formatCurrency(Number(inv.grand_total) || 0)}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onEdit(inv.id)}
+                              title="Edit invoice"
+                              className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
+                            >
+                              <Pencil size={13} /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onDelete(inv.id)}
+                              title="Delete invoice"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </li>
                   ))}

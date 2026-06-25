@@ -12,6 +12,14 @@ export default function ProjectSection({ state, set }) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
+          label="Invoice No."
+          type="text"
+          placeholder="e.g. INV-2026-1234"
+          value={state.quoteNumber}
+          onChange={(v) => set('quoteNumber', v)}
+        />
+        <div className="hidden sm:block" />
+        <Field
           label="Project Name"
           type="text"
           placeholder="e.g. Modular Kitchen — Phase 1"

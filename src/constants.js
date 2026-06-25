@@ -70,7 +70,7 @@ export const getInitialState = () => ({
   // Project meta
   projectName: '',
   clientName: '',
-  quoteNumber: 'Q-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
+  quoteNumber: 'INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
 
   // 1. Particle Board
   requiredArea: '',

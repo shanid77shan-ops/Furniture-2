@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Receipt, Printer, RotateCcw, Save, Check, Loader2 } from 'lucide-react'
+import { Receipt, Printer, RotateCcw, Save, Loader2 } from 'lucide-react'
 import { formatCurrency, formatNumber } from '../utils/format'
 
 const COMPANY = {
@@ -29,7 +29,7 @@ export default function QuotationSummary({
   onReset,
   onSave,
   saving,
-  savedFlash,
+  isEditing,
 }) {
   const today = new Date().toLocaleDateString('en-IN', {
     day: '2-digit',
@@ -55,7 +55,7 @@ export default function QuotationSummary({
             <p className="text-xs text-slate-300">{COMPANY.tagline}</p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400">Quotation</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">Invoice No.</p>
             <p className="text-sm font-semibold">{state.quoteNumber}</p>
           </div>
         </div>
@@ -140,23 +140,15 @@ export default function QuotationSummary({
           type="button"
           onClick={onSave}
           disabled={saving}
-          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm transition active:scale-[0.98] disabled:opacity-70 ${
-            savedFlash
-              ? 'bg-emerald-600 text-white'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          }`}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-70"
         >
           {saving ? (
             <>
               <Loader2 size={16} className="animate-spin" /> Saving…
             </>
-          ) : savedFlash ? (
-            <>
-              <Check size={16} /> Saved to backend
-            </>
           ) : (
             <>
-              <Save size={16} /> Save Invoice
+              <Save size={16} /> {isEditing ? 'Update Invoice' : 'Save Invoice'}
             </>
           )}
         </button>

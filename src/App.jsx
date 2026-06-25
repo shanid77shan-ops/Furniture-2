@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Calculator, LogOut, FileText, Loader2, AlertCircle } from 'lucide-react'
+import { Calculator, LogOut, FileText, Loader2, AlertCircle, Pencil } from 'lucide-react'
 import { getInitialState, getInitialCatalog } from './constants'
 import { useQuotationMath } from './hooks/useQuotationMath'
 import { isSupabaseConfigured } from './lib/supabase'
@@ -14,6 +14,7 @@ import CatalogManager from './components/CatalogManager'
 import MissingItemsModal from './components/MissingItemsModal'
 import LoginScreen from './components/LoginScreen'
 import InvoicesModal from './components/InvoicesModal'
+import Toast from './components/Toast'
 
 const USER_KEY = 'wc_user_v1'
 
@@ -52,7 +53,8 @@ export default function App() {
   const [invoices, setInvoices] = useState([])
   const [invoicesLoading, setInvoicesLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [savedFlash, setSavedFlash] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [toast, setToast] = useState('')
 
   const catalogOpenRef = useRef(catalogOpen)
   catalogOpenRef.current = catalogOpen
@@ -109,6 +111,13 @@ export default function App() {
     }, 80)
     return () => clearTimeout(t)
   }, [printQueued])
+
+  // Auto-dismiss the success toast.
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 2800)
+    return () => clearTimeout(t)
+  }, [toast])
 
   /* --------------------------------- Auth --------------------------------- */
   const handleAuthed = useCallback((u) => {
@@ -254,23 +263,31 @@ export default function App() {
   /* ------------------------------- Invoices ------------------------------- */
   const doSave = useCallback(async () => {
     setSaving(true)
+    const payload = {
+      quoteNumber: state.quoteNumber,
+      projectName: state.projectName,
+      clientName: state.clientName,
+      grandTotal: calc.grandTotal,
+      data: { version: 1, form: state },
+    }
+    const number = state.quoteNumber
     try {
-      await api.saveInvoice({
-        quoteNumber: state.quoteNumber,
-        projectName: state.projectName,
-        clientName: state.clientName,
-        grandTotal: calc.grandTotal,
-        data: { version: 1, form: state },
-      })
-      setSavedFlash(true)
-      setTimeout(() => setSavedFlash(false), 2000)
+      if (editingId) {
+        await api.updateInvoice(editingId, payload)
+      } else {
+        await api.saveInvoice(payload)
+      }
       refreshInvoices()
+      // Confirm success, then start a fresh invoice for the next quote.
+      setToast(`Invoice ${number} ${editingId ? 'updated' : 'saved'} successfully`)
+      setEditingId(null)
+      setState(getInitialState())
     } catch (err) {
       alert(err.message)
     } finally {
       setSaving(false)
     }
-  }, [state, calc.grandTotal, refreshInvoices])
+  }, [state, calc.grandTotal, editingId, refreshInvoices])
 
   // Save after state settles (e.g. once items were marked Unused).
   // Declared here, after doSave, to avoid a temporal-dead-zone reference.
@@ -290,33 +307,40 @@ export default function App() {
     }
   }, [calc.missingHardware.length, doSave])
 
-  const handleLoadInvoice = useCallback(async (id) => {
+  const handleEditInvoice = useCallback(async (id) => {
     try {
       const row = await api.getInvoice(id)
       const form = row?.data?.form
       if (form) {
         setState({ ...getInitialState(), ...form })
+        setEditingId(id)
         setInvoicesOpen(false)
+        setToast(`Editing invoice ${row.quote_number || ''}`.trim())
       }
     } catch (err) {
       alert(err.message)
     }
   }, [])
 
-  const handleDeleteInvoice = useCallback(async (id) => {
-    if (!window.confirm('Delete this saved invoice?')) return
-    setInvoices((prev) => prev.filter((i) => i.id !== id))
-    try {
-      await api.deleteInvoice(id)
-    } catch (err) {
-      alert(err.message)
-    }
-  }, [])
+  const handleDeleteInvoice = useCallback(
+    async (id) => {
+      if (!window.confirm('Delete this saved invoice?')) return
+      setInvoices((prev) => prev.filter((i) => i.id !== id))
+      if (id === editingId) setEditingId(null)
+      try {
+        await api.deleteInvoice(id)
+      } catch (err) {
+        alert(err.message)
+      }
+    },
+    [editingId],
+  )
 
   /* ------------------------------- Actions -------------------------------- */
   const handleReset = useCallback(() => {
     if (window.confirm('Clear all inputs and start a new quotation?')) {
       setState(getInitialState())
+      setEditingId(null)
     }
   }, [])
 
@@ -405,6 +429,21 @@ export default function App() {
             <AlertCircle size={16} /> {catalogError}
           </div>
         )}
+        {editingId && (
+          <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span className="flex items-center gap-2">
+              <Pencil size={15} /> Editing invoice <strong>{state.quoteNumber}</strong> — “Update
+              Invoice” saves your changes.
+            </span>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="rounded-md border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+            >
+              Cancel & start new
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.5fr_1fr]">
           {/* Left: Inputs */}
           <div className="no-print space-y-6">
@@ -436,7 +475,7 @@ export default function App() {
               onReset={handleReset}
               onSave={handleSaveInvoice}
               saving={saving}
-              savedFlash={savedFlash}
+              isEditing={Boolean(editingId)}
             />
           </div>
         </div>
@@ -475,9 +514,12 @@ export default function App() {
         onClose={() => setInvoicesOpen(false)}
         invoices={invoices}
         loading={invoicesLoading}
-        onLoad={handleLoadInvoice}
+        editingId={editingId}
+        onEdit={handleEditInvoice}
         onDelete={handleDeleteInvoice}
       />
+
+      <Toast message={toast} />
     </div>
   )
 }

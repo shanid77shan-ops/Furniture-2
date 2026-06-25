@@ -129,6 +129,23 @@ export async function saveInvoice({ quoteNumber, projectName, clientName, grandT
   return row
 }
 
+export async function updateInvoice(id, { quoteNumber, projectName, clientName, grandTotal, data }) {
+  const { data: row, error } = await supabase
+    .from('invoices')
+    .update({
+      quote_number: quoteNumber,
+      project_name: projectName,
+      client_name: clientName,
+      grand_total: num(grandTotal),
+      data,
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error) throw new Error(error.message)
+  return row
+}
+
 export async function listInvoices() {
   const { data, error } = await supabase
     .from('invoices')
