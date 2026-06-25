@@ -8,8 +8,8 @@ export default function MarginsSection({ state, set, calc }) {
     <SectionCard
       icon={Percent}
       accent="blue"
-      title="Margins & Taxes"
-      description="Applied on top of the cost subtotal."
+      title="Margins, Taxes & Charges"
+      description="Profit and tax apply to the cost subtotal; transport is added after tax."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
@@ -23,6 +23,13 @@ export default function MarginsSection({ state, set, calc }) {
           suffix="%"
           value={state.taxPercent}
           onChange={(v) => set('taxPercent', v)}
+        />
+        <Field
+          label="Transport / Shipping"
+          prefix="₹"
+          hint="Flat charge added to the final total (after tax)"
+          value={state.shipping}
+          onChange={(v) => set('shipping', v)}
         />
       </div>
 

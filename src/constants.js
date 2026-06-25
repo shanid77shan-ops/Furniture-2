@@ -91,4 +91,5 @@ export const getInitialState = () => ({
   // 5. Final Pricing
   profitMargin: 20,
   taxPercent: 18,
+  shipping: '',
 })

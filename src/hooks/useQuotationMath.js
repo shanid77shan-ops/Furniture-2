@@ -31,6 +31,7 @@ export function useQuotationMath(state, catalog = []) {
       installationPerSqFt,
       profitMargin,
       taxPercent,
+      shipping,
     } = state
 
     // 1. Particle Board ----------------------------------------------------
@@ -90,7 +91,9 @@ export function useQuotationMath(state, catalog = []) {
     const profitAmount = subtotal * (num(profitMargin) / 100)
     const preTaxTotal = subtotal + profitAmount
     const taxAmount = preTaxTotal * (num(taxPercent) / 100)
-    const grandTotal = preTaxTotal + taxAmount
+    // Transport / shipping is a flat pass-through added after tax.
+    const shippingCharge = num(shipping)
+    const grandTotal = preTaxTotal + taxAmount + shippingCharge
 
     return {
       actualArea,
@@ -104,6 +107,7 @@ export function useQuotationMath(state, catalog = []) {
       profitAmount,
       preTaxTotal,
       taxAmount,
+      shippingCharge,
       grandTotal,
     }
   }, [state, catalog])
