@@ -3,9 +3,9 @@ import { Receipt, Printer, RotateCcw, Save, Loader2 } from 'lucide-react'
 import { formatCurrency, formatNumber } from '../utils/format'
 
 const COMPANY = {
-  name: 'WoodCraft Modular',
+  name: 'Inspire Furnitures',
   tagline: 'Particle Board Furniture Manufacturing',
-  contact: 'hello@woodcraft.example  •  +91 98765 43210',
+  contact: 'hello@inspirefurnitures.example  •  +91 98765 43210',
 }
 
 function Row({ label, value, sub, strong }) {
@@ -121,6 +121,9 @@ export default function QuotationSummary({
           sub={`(${formatNumber(Number(state.taxPercent) || 0, 0)}%)`}
           value={formatCurrency(calc.taxAmount)}
         />
+        {calc.shippingCharge > 0 && (
+          <Row label="Transport / Shipping" value={formatCurrency(calc.shippingCharge)} />
+        )}
       </div>
 
       {/* ---------- Grand total ---------- */}
