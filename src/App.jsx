@@ -44,7 +44,9 @@ export default function App() {
 
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [missingOpen, setMissingOpen] = useState(false)
+  const [missingContext, setMissingContext] = useState('print') // 'print' | 'save'
   const [printQueued, setPrintQueued] = useState(false)
+  const [saveQueued, setSaveQueued] = useState(false)
 
   const [invoicesOpen, setInvoicesOpen] = useState(false)
   const [invoices, setInvoices] = useState([])
@@ -107,6 +109,13 @@ export default function App() {
     }, 80)
     return () => clearTimeout(t)
   }, [printQueued])
+
+  // Save after state settles (e.g. once items were marked Unused).
+  useEffect(() => {
+    if (!saveQueued) return
+    setSaveQueued(false)
+    doSave()
+  }, [saveQueued, doSave])
 
   /* --------------------------------- Auth --------------------------------- */
   const handleAuthed = useCallback((u) => {
@@ -250,7 +259,7 @@ export default function App() {
   }, [refreshCatalog])
 
   /* ------------------------------- Invoices ------------------------------- */
-  const handleSaveInvoice = useCallback(async () => {
+  const doSave = useCallback(async () => {
     setSaving(true)
     try {
       await api.saveInvoice({
@@ -269,6 +278,16 @@ export default function App() {
       setSaving(false)
     }
   }, [state, calc.grandTotal, refreshInvoices])
+
+  // Block saving when any hardware item is "missed" (no qty and not Unused).
+  const handleSaveInvoice = useCallback(() => {
+    if (calc.missingHardware.length > 0) {
+      setMissingContext('save')
+      setMissingOpen(true)
+    } else {
+      doSave()
+    }
+  }, [calc.missingHardware.length, doSave])
 
   const handleLoadInvoice = useCallback(async (id) => {
     try {
@@ -301,16 +320,23 @@ export default function App() {
   }, [])
 
   const handleGenerate = useCallback(() => {
-    if (calc.missingHardware.length > 0) setMissingOpen(true)
-    else setPrintQueued(true)
+    if (calc.missingHardware.length > 0) {
+      setMissingContext('print')
+      setMissingOpen(true)
+    } else {
+      setPrintQueued(true)
+    }
   }, [calc.missingHardware.length])
 
-  const handleMarkUnusedAndPrint = useCallback(() => {
+  // "Mark all Unused & continue" — works for both print and save contexts.
+  const handleMarkUnusedAndContinue = useCallback(() => {
     markUnused(calc.missingHardware.map((m) => m.id))
     setMissingOpen(false)
-    setPrintQueued(true)
-  }, [calc.missingHardware, markUnused])
+    if (missingContext === 'save') setSaveQueued(true)
+    else setPrintQueued(true)
+  }, [calc.missingHardware, markUnused, missingContext])
 
+  // Only offered for printing (saving stays blocked until items are resolved).
   const handlePrintAnyway = useCallback(() => {
     setMissingOpen(false)
     setPrintQueued(true)
@@ -436,10 +462,11 @@ export default function App() {
 
       <MissingItemsModal
         open={missingOpen}
+        context={missingContext}
         items={calc.missingHardware}
         onClose={() => setMissingOpen(false)}
-        onMarkUnusedAndPrint={handleMarkUnusedAndPrint}
-        onPrintAnyway={handlePrintAnyway}
+        onMarkUnused={handleMarkUnusedAndContinue}
+        onContinueAnyway={missingContext === 'print' ? handlePrintAnyway : null}
       />
 
       <InvoicesModal
