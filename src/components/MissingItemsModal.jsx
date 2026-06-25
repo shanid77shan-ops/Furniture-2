@@ -38,12 +38,12 @@ export default function MissingItemsModal({
               </span>
               <div className="flex-1">
                 <h2 className="text-base font-semibold text-slate-800">
-                  {isSave ? "Can't save — some items are not added" : 'Some items are not added'}
+                  Can&apos;t {isSave ? 'save' : 'save & print'} — some items are not added
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
-                  {isSave
-                    ? 'Please review each item below — add a quantity if you’re using it, or tick “Unused” if you’re not. The invoice can only be saved once every item is handled.'
-                    : 'These hardware items have no quantity and aren’t marked “Unused”.'}
+                  Please review each item below — add a quantity if you’re using it, or tick
+                  “Unused” if you’re not. The invoice can only be {isSave ? 'saved' : 'saved & printed'}{' '}
+                  once every item is handled.
                 </p>
               </div>
               <button

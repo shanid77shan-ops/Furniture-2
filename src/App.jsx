@@ -46,8 +46,6 @@ export default function App() {
   const [catalogOpen, setCatalogOpen] = useState(false)
   const [missingOpen, setMissingOpen] = useState(false)
   const [missingContext, setMissingContext] = useState('print') // 'print' | 'save'
-  const [printQueued, setPrintQueued] = useState(false)
-  const [saveQueued, setSaveQueued] = useState(false)
 
   const [invoicesOpen, setInvoicesOpen] = useState(false)
   const [invoices, setInvoices] = useState([])
@@ -102,16 +100,6 @@ export default function App() {
     }
   }, [user, refreshCatalog, refreshInvoices])
 
-  // Print once the DOM reflects the latest state.
-  useEffect(() => {
-    if (!printQueued) return
-    const t = setTimeout(() => {
-      window.print()
-      setPrintQueued(false)
-    }, 80)
-    return () => clearTimeout(t)
-  }, [printQueued])
-
   // Auto-dismiss the success toast.
   useEffect(() => {
     if (!toast) return
@@ -147,16 +135,6 @@ export default function App() {
         [typeId]: { ...(prev.hardwareEntries[typeId] || {}), ...patch },
       },
     }))
-  }, [])
-
-  const markUnused = useCallback((typeIds) => {
-    setState((prev) => {
-      const next = { ...prev.hardwareEntries }
-      typeIds.forEach((id) => {
-        next[id] = { ...(next[id] || {}), unused: true, quantity: '' }
-      })
-      return { ...prev, hardwareEntries: next }
-    })
   }, [])
 
   /* ----------------------------- Catalog CRUD ----------------------------- */
@@ -261,51 +239,50 @@ export default function App() {
   }, [refreshCatalog])
 
   /* ------------------------------- Invoices ------------------------------- */
-  const doSave = useCallback(async () => {
-    setSaving(true)
-    const payload = {
-      quoteNumber: state.quoteNumber,
-      projectName: state.projectName,
-      clientName: state.clientName,
-      grandTotal: calc.grandTotal,
-      data: { version: 1, form: state },
-    }
-    const number = state.quoteNumber
-    try {
-      if (editingId) {
-        await api.updateInvoice(editingId, payload)
-      } else {
-        await api.saveInvoice(payload)
+  // Persist the invoice, optionally print it, then start a fresh invoice.
+  const commitInvoice = useCallback(
+    async ({ print }) => {
+      setSaving(true)
+      const number = state.quoteNumber
+      const wasEditing = Boolean(editingId)
+      const payload = {
+        quoteNumber: state.quoteNumber,
+        projectName: state.projectName,
+        clientName: state.clientName,
+        grandTotal: calc.grandTotal,
+        data: { version: 1, form: state },
       }
-      refreshInvoices()
-      // Confirm success, then start a fresh invoice for the next quote.
-      setToast(`Invoice ${number} ${editingId ? 'updated' : 'saved'} successfully`)
-      setEditingId(null)
-      setState(getInitialState())
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }, [state, calc.grandTotal, editingId, refreshInvoices])
+      try {
+        if (editingId) {
+          await api.updateInvoice(editingId, payload)
+        } else {
+          await api.saveInvoice(payload)
+        }
+        refreshInvoices()
+        // Print the current invoice (DOM still reflects this quote) before reset.
+        if (print) window.print()
+        setToast(`Invoice ${number} ${wasEditing ? 'updated' : 'saved'} successfully`)
+        setEditingId(null)
+        setState(getInitialState())
+      } catch (err) {
+        alert(err.message)
+      } finally {
+        setSaving(false)
+      }
+    },
+    [state, calc.grandTotal, editingId, refreshInvoices],
+  )
 
-  // Save after state settles (e.g. once items were marked Unused).
-  // Declared here, after doSave, to avoid a temporal-dead-zone reference.
-  useEffect(() => {
-    if (!saveQueued) return
-    setSaveQueued(false)
-    doSave()
-  }, [saveQueued, doSave])
-
-  // Block saving when any hardware item is "missed" (no qty and not Unused).
+  // Both "Save Invoice" and "Print / PDF" persist the invoice. They are
+  // blocked (with a reminder) until every hardware item is resolved.
   const handleSaveInvoice = useCallback(() => {
     if (calc.missingHardware.length > 0) {
       setMissingContext('save')
       setMissingOpen(true)
     } else {
-      doSave()
+      commitInvoice({ print: false })
     }
-  }, [calc.missingHardware.length, doSave])
+  }, [calc.missingHardware.length, commitInvoice])
 
   const handleEditInvoice = useCallback(async (id) => {
     try {
@@ -349,23 +326,9 @@ export default function App() {
       setMissingContext('print')
       setMissingOpen(true)
     } else {
-      setPrintQueued(true)
+      commitInvoice({ print: true })
     }
-  }, [calc.missingHardware.length])
-
-  // "Mark all Unused & continue" — works for both print and save contexts.
-  const handleMarkUnusedAndContinue = useCallback(() => {
-    markUnused(calc.missingHardware.map((m) => m.id))
-    setMissingOpen(false)
-    if (missingContext === 'save') setSaveQueued(true)
-    else setPrintQueued(true)
-  }, [calc.missingHardware, markUnused, missingContext])
-
-  // Only offered for printing (saving stays blocked until items are resolved).
-  const handlePrintAnyway = useCallback(() => {
-    setMissingOpen(false)
-    setPrintQueued(true)
-  }, [])
+  }, [calc.missingHardware.length, commitInvoice])
 
   /* -------------------------------- Render -------------------------------- */
   if (!isSupabaseConfigured) {
@@ -505,8 +468,6 @@ export default function App() {
         context={missingContext}
         items={calc.missingHardware}
         onClose={() => setMissingOpen(false)}
-        onMarkUnused={missingContext === 'print' ? handleMarkUnusedAndContinue : null}
-        onContinueAnyway={missingContext === 'print' ? handlePrintAnyway : null}
       />
 
       <InvoicesModal

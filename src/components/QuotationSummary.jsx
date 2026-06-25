@@ -161,7 +161,7 @@ export default function QuotationSummary({
             onClick={onPrint}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:scale-[0.98]"
           >
-            <Printer size={16} /> Print / PDF
+            <Printer size={16} /> Save & Print
           </button>
           <button
             type="button"
