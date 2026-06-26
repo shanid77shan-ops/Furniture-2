@@ -74,13 +74,14 @@ export function calcOuterArea(heightFt, widthFt, depthFt) {
   return 2 * H * W + 2 * H * D + 2 * W * D
 }
 
-/** Internal shelf area: (N × W × D) / N = W × D. */
-export function calcInnerArea(widthFt, depthFt, shelvesCount) {
+/** Internal shelf area: (N × W × D) / V, where V = vertical dividers. */
+export function calcInnerArea(widthFt, depthFt, shelvesCount, dividerCount) {
   const W = num(widthFt)
   const D = num(depthFt)
   const N = num(shelvesCount)
-  if (W <= 0 || D <= 0 || N <= 0) return 0
-  return (N * W * D) / N
+  const V = num(dividerCount)
+  if (W <= 0 || D <= 0 || N <= 0 || V <= 0) return 0
+  return (N * W * D) / V
 }
 
 /** Vertical divider panels: V × H × (D−T). */
@@ -109,7 +110,7 @@ export function calcCabinet(cabinet, unit = 'cm') {
   const thickness = cabinet?.structure?.material_thickness ?? 18
 
   const outerArea = calcOuterArea(h, w, d)
-  const innerArea = calcInnerArea(w, d, shelves)
+  const innerArea = calcInnerArea(w, d, shelves, dividers)
   const dividerArea = calcDividerArea(h, d, dividers, thickness)
   const calculated_area = outerArea + innerArea + dividerArea
 
