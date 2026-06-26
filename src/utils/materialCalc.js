@@ -74,7 +74,7 @@ export function calcOuterArea(heightFt, widthFt, depthFt) {
   return 2 * H * W + 2 * H * D + 2 * W * D
 }
 
-/** Internal shelf area: (N × W × D) / V, where V = vertical dividers. */
+/** Internal shelf area: (N × W × D) / V — shelves divided by vertical dividers. */
 export function calcInnerArea(widthFt, depthFt, shelvesCount, dividerCount) {
   const W = num(widthFt)
   const D = num(depthFt)
