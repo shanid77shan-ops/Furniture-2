@@ -1,12 +1,12 @@
-import { Plus, Trash2, Layers } from 'lucide-react'
+import { Plus, Trash2, Layers, Ruler } from 'lucide-react'
 import SectionCard from '../ui/SectionCard'
 import { formatCurrency, formatNumber } from '../../utils/format'
-import { calcCabinet } from '../../utils/materialCalc'
+import { calcCabinet, DIMENSION_UNITS, DIMENSION_UNIT_LABELS } from '../../utils/materialCalc'
 
-const dimFields = [
-  { key: 'h', label: 'Height (cm)' },
-  { key: 'w', label: 'Width (cm)' },
-  { key: 'd', label: 'Depth (cm)' },
+const dimKeys = [
+  { key: 'h', name: 'Height' },
+  { key: 'w', name: 'Width' },
+  { key: 'd', name: 'Depth' },
 ]
 
 export default function MaterialSection({
@@ -17,19 +17,44 @@ export default function MaterialSection({
   updateCabinetDimensions,
   updateCabinetStructure,
   removeCabinet,
+  setDimensionUnit,
 }) {
   const cabinets = state.cabinets?.length ? state.cabinets : []
+  const unit = state.dimensionUnit || 'cm'
 
   return (
     <SectionCard
       icon={Layers}
       accent="blue"
       title="1. Material (Particle Board)"
-      description="Add cabinets with external dimensions in cm; area is calculated in sq ft."
+      description="Add cabinets and choose cm, inches, or feet for dimensions; area is calculated in sq ft."
     >
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex-1">
+          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+            <Ruler className="h-4 w-4 text-slate-400" />
+            Measurement unit
+          </label>
+          <select
+            value={unit}
+            onChange={(e) => setDimensionUnit(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 sm:max-w-xs"
+          >
+            {DIMENSION_UNITS.map((u) => (
+              <option key={u} value={u}>
+                {DIMENSION_UNIT_LABELS[u]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="text-xs text-slate-500 sm:pb-2">
+          Changing unit converts existing cabinet dimensions automatically.
+        </p>
+      </div>
+
       <div className="space-y-4">
         {cabinets.map((cabinet, index) => {
-          const result = calcCabinet(cabinet)
+          const result = calcCabinet(cabinet, unit)
           const canRemove = cabinets.length > 1
 
           return (
@@ -59,9 +84,11 @@ export default function MaterialSection({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                {dimFields.map(({ key, label }) => (
+                {dimKeys.map(({ key, name }) => (
                   <div key={key}>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      {name} ({unit})
+                    </label>
                     <input
                       type="number"
                       min="0"

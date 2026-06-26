@@ -146,30 +146,28 @@ export const createCabinet = (overrides = {}) => ({
   ...overrides,
 })
 
-/** Convert saved estimates that used flat height/width/depth (feet) into cabinets (cm). */
+/** Convert saved estimates that used flat height/width/depth (feet) into cabinets. */
 export const migrateLegacyMaterial = (form = {}) => {
-  if (form.cabinets?.length) return form
+  if (form.cabinets?.length) {
+    return { ...form, dimensionUnit: form.dimensionUnit || 'cm' }
+  }
 
   const { height, width, depth, shelvesCount, verticalDividers, thicknessMm } = form
   const hasLegacyDims = height || width || depth
 
   if (!hasLegacyDims) {
-    return { ...form, cabinets: [createCabinet()] }
-  }
-
-  const feetToCm = (ft) => {
-    const n = parseFloat(ft)
-    return Number.isFinite(n) && n > 0 ? Math.round(n * 30.48 * 10) / 10 : ''
+    return { ...form, dimensionUnit: form.dimensionUnit || 'cm', cabinets: [createCabinet()] }
   }
 
   return {
     ...form,
+    dimensionUnit: 'ft',
     cabinets: [
       createCabinet({
         dimensions: {
-          h: feetToCm(height),
-          w: feetToCm(width),
-          d: feetToCm(depth),
+          h: height ?? '',
+          w: width ?? '',
+          d: depth ?? '',
         },
         structure: {
           shelves: shelvesCount ?? '',
@@ -187,7 +185,8 @@ export const getInitialState = () => ({
   clientName: '',
   quoteNumber: buildNextEstimateNumber(),
 
-  // 1. Material — cabinets (dimensions in cm)
+  // 1. Material — cabinets (dimensions in dimensionUnit: cm | in | ft)
+  dimensionUnit: 'cm',
   cabinets: [createCabinet()],
   costPerSqFt: '',
   wastagePercent: 15,

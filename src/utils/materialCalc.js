@@ -1,16 +1,63 @@
 /**
  * Material area from cupboard / wardrobe cabinets.
- * External dimensions (h, w, d) are in centimetres; thickness in mm.
+ * External dimensions (h, w, d) use the selected unit; thickness in mm.
  * Output area is in square feet.
  */
+
+export const DIMENSION_UNITS = ['cm', 'in', 'ft']
+
+export const DIMENSION_UNIT_LABELS = {
+  cm: 'Centimetres (cm)',
+  in: 'Inches (in)',
+  ft: 'Feet (ft)',
+}
 
 const num = (value) => {
   const n = typeof value === 'number' ? value : parseFloat(value)
   return Number.isFinite(n) ? n : 0
 }
 
-/** Convert centimetres to feet. */
-export const cmToFeet = (cm) => num(cm) / 30.48
+/** Convert a length in the given unit to feet. */
+export function toFeet(value, unit = 'cm') {
+  const n = num(value)
+  if (n <= 0) return 0
+  switch (unit) {
+    case 'ft':
+      return n
+    case 'in':
+      return n / 12
+    case 'cm':
+    default:
+      return n / 30.48
+  }
+}
+
+/** Convert feet to the given unit. */
+export function fromFeet(feet, unit = 'cm') {
+  const n = num(feet)
+  switch (unit) {
+    case 'ft':
+      return n
+    case 'in':
+      return n * 12
+    case 'cm':
+    default:
+      return n * 30.48
+  }
+}
+
+/** Convert a dimension value between units (preserves empty input). */
+export function convertDimension(value, fromUnit, toUnit) {
+  if (fromUnit === toUnit) return value ?? ''
+  const raw = value ?? ''
+  const n = parseFloat(raw)
+  if (!Number.isFinite(n)) return raw
+  const feet = toFeet(n, fromUnit)
+  return Math.round(fromFeet(feet, toUnit) * 100) / 100
+}
+
+/** @deprecated Use toFeet(value, 'cm') */
+export const cmToFeet = (cm) => toFeet(cm, 'cm')
 
 /** Convert millimetres to feet. */
 export const mmToFeet = (mm) => num(mm) / 304.8
@@ -56,10 +103,10 @@ export function calcDividerArea(heightFt, depthFt, dividerCount, thicknessMm) {
  *   calculated_area, outerArea, innerArea, dividerArea
  * }
  */
-export function calcCabinet(cabinet) {
-  const h = cmToFeet(cabinet?.dimensions?.h)
-  const w = cmToFeet(cabinet?.dimensions?.w)
-  const d = cmToFeet(cabinet?.dimensions?.d)
+export function calcCabinet(cabinet, unit = 'cm') {
+  const h = toFeet(cabinet?.dimensions?.h, unit)
+  const w = toFeet(cabinet?.dimensions?.w, unit)
+  const d = toFeet(cabinet?.dimensions?.d, unit)
   const shelves = cabinet?.structure?.shelves
   const dividers = cabinet?.structure?.dividers
   const thickness = cabinet?.structure?.material_thickness ?? 18
@@ -81,8 +128,11 @@ export function calcCabinet(cabinet) {
 }
 
 /** Sum all cabinets, apply wastage and cost. */
-export function calcMaterialFromCabinets(cabinets = [], { wastagePercent = 15, costPerSqFt = 0 } = {}) {
-  const cabinetResults = (cabinets || []).map(calcCabinet)
+export function calcMaterialFromCabinets(
+  cabinets = [],
+  { dimensionUnit = 'cm', wastagePercent = 15, costPerSqFt = 0 } = {},
+) {
+  const cabinetResults = (cabinets || []).map((cabinet) => calcCabinet(cabinet, dimensionUnit))
 
   const outerArea = cabinetResults.reduce((s, c) => s + c.outerArea, 0)
   const innerArea = cabinetResults.reduce((s, c) => s + c.innerArea, 0)

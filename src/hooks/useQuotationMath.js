@@ -23,6 +23,7 @@ export function useQuotationMath(state, catalog = []) {
   return useMemo(() => {
     const {
       cabinets = [],
+      dimensionUnit = 'cm',
       costPerSqFt,
       wastagePercent,
       runningMeters,
@@ -37,7 +38,11 @@ export function useQuotationMath(state, catalog = []) {
     } = state
 
     // 1. Particle Board (from cabinet entries) -----------------------------
-    const material = calcMaterialFromCabinets(cabinets, { wastagePercent, costPerSqFt })
+    const material = calcMaterialFromCabinets(cabinets, {
+      dimensionUnit,
+      wastagePercent,
+      costPerSqFt,
+    })
     const {
       cabinets: cabinetResults,
       outerArea,

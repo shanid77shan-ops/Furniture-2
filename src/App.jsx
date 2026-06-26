@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Calculator, LogOut, FileText, Loader2, AlertCircle, Pencil } from 'lucide-react'
 import { getInitialState, getInitialCatalog, createCabinet, migrateLegacyMaterial } from './constants'
-import { useQuotationMath } from './hooks/useQuotationMath'
+import { convertDimension } from './utils/materialCalc'
 import { isSupabaseConfigured } from './lib/supabase'
 import * as api from './lib/api'
 import ProjectSection from './components/sections/ProjectSection'
@@ -193,6 +193,24 @@ export default function App() {
           : c,
       ),
     }))
+  }, [])
+
+  const setDimensionUnit = useCallback((newUnit) => {
+    setState((prev) => {
+      const oldUnit = prev.dimensionUnit || 'cm'
+      if (oldUnit === newUnit) return prev
+
+      const cabinets = (prev.cabinets || []).map((c) => ({
+        ...c,
+        dimensions: {
+          h: convertDimension(c.dimensions?.h, oldUnit, newUnit),
+          w: convertDimension(c.dimensions?.w, oldUnit, newUnit),
+          d: convertDimension(c.dimensions?.d, oldUnit, newUnit),
+        },
+      }))
+
+      return { ...prev, dimensionUnit: newUnit, cabinets }
+    })
   }, [])
 
   /* ----------------------------- Catalog CRUD ----------------------------- */
@@ -507,6 +525,7 @@ export default function App() {
               updateCabinetDimensions={updateCabinetDimensions}
               updateCabinetStructure={updateCabinetStructure}
               removeCabinet={removeCabinet}
+              setDimensionUnit={setDimensionUnit}
             />
             {catalogLoading ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-400">
