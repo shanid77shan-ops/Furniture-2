@@ -13,8 +13,9 @@ const effectivePrice = (entry, catalogPrice) =>
 
 function HardwareRow({ type, entry, setHardwareEntry }) {
   const quantity = entry.quantity ?? ''
-  const unitPrice = entry.unitPrice ?? ''
   const unused = !!entry.unused
+  const hasManualPrice = entry.unitPrice !== undefined && entry.unitPrice !== ''
+  const displayAmount = hasManualPrice ? entry.unitPrice : type.price || ''
   const price = effectivePrice(entry, type.price)
   const lineTotal = unused ? 0 : num(quantity) * price
   const missing = !unused && num(quantity) <= 0
@@ -71,7 +72,7 @@ function HardwareRow({ type, entry, setHardwareEntry }) {
             min="0"
             step="any"
             placeholder="Amount"
-            value={unitPrice}
+            value={displayAmount}
             disabled={unused}
             onChange={(e) => setHardwareEntry(type.id, { unitPrice: e.target.value })}
             className="w-full bg-transparent px-2 py-2 text-right text-sm outline-none disabled:cursor-not-allowed"

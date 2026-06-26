@@ -258,6 +258,21 @@ export default function App() {
         } else {
           await api.saveInvoice(payload)
         }
+
+        // Remember unit prices on catalog items for next invoice.
+        const priceUpdates = await api.syncCatalogPrices(catalog, state.hardwareEntries)
+        if (priceUpdates.length > 0) {
+          setCatalog((prev) =>
+            prev.map((c) => ({
+              ...c,
+              types: c.types.map((t) => {
+                const hit = priceUpdates.find((u) => u.id === t.id)
+                return hit ? { ...t, price: hit.price } : t
+              }),
+            })),
+          )
+        }
+
         refreshInvoices()
         // Print the current invoice (DOM still reflects this quote) before reset.
         if (print) window.print()
@@ -270,7 +285,7 @@ export default function App() {
         setSaving(false)
       }
     },
-    [state, calc.grandTotal, editingId, refreshInvoices],
+    [state, calc.grandTotal, editingId, catalog, refreshInvoices],
   )
 
   // Both "Save Invoice" and "Print / PDF" persist the invoice. They are

@@ -106,6 +106,35 @@ export async function updateType(id, patch) {
   if (error) throw new Error(error.message)
 }
 
+/** Persist unit prices from a saved invoice back to the catalog. */
+export async function syncCatalogPrices(catalog, hardwareEntries = {}) {
+  const num = (v) => {
+    const n = typeof v === 'number' ? v : parseFloat(v)
+    return Number.isFinite(n) ? n : 0
+  }
+  const updates = []
+
+  ;(catalog || []).forEach((category) => {
+    ;(category.types || []).forEach((type) => {
+      const entry = hardwareEntries[type.id] || {}
+      if (entry.unused || num(entry.quantity) <= 0) return
+
+      const price =
+        entry.unitPrice !== undefined && entry.unitPrice !== ''
+          ? num(entry.unitPrice)
+          : num(type.price)
+
+      // Only write when the user entered an amount on this invoice.
+      if (entry.unitPrice !== undefined && entry.unitPrice !== '') {
+        updates.push({ id: type.id, categoryId: category.id, price })
+      }
+    })
+  })
+
+  await Promise.all(updates.map((u) => updateType(u.id, { price: u.price })))
+  return updates
+}
+
 export async function removeType(id) {
   const { error } = await supabase.from('catalog_types').delete().eq('id', id)
   if (error) throw new Error(error.message)
