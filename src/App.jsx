@@ -527,6 +527,7 @@ export default function App() {
               removeCabinet={removeCabinet}
               setDimensionUnit={setDimensionUnit}
             />
+            <LaborSection state={state} set={set} calc={calc} />
             {catalogLoading ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-400">
                 <Loader2 size={18} className="animate-spin" /> Loading hardware catalog…
@@ -541,7 +542,6 @@ export default function App() {
                 onManageCatalog={() => setCatalogOpen(true)}
               />
             )}
-            <LaborSection state={state} set={set} calc={calc} />
             <MarginsSection state={state} set={set} calc={calc} />
           </div>
 
