@@ -8,10 +8,15 @@ const num = (v) => {
   return Number.isFinite(n) ? n : 0
 }
 
-function HardwareRow({ category, type, entry, setHardwareEntry }) {
+const effectivePrice = (entry, catalogPrice) =>
+  entry.unitPrice !== undefined && entry.unitPrice !== '' ? num(entry.unitPrice) : num(catalogPrice)
+
+function HardwareRow({ type, entry, setHardwareEntry }) {
   const quantity = entry.quantity ?? ''
+  const unitPrice = entry.unitPrice ?? ''
   const unused = !!entry.unused
-  const lineTotal = unused ? 0 : num(quantity) * num(type.price)
+  const price = effectivePrice(entry, type.price)
+  const lineTotal = unused ? 0 : num(quantity) * price
   const missing = !unused && num(quantity) <= 0
 
   return (
@@ -22,7 +27,7 @@ function HardwareRow({ category, type, entry, setHardwareEntry }) {
       }`}
     >
       {/* Item */}
-      <div className="col-span-12 sm:col-span-5">
+      <div className="col-span-12 sm:col-span-4">
         <p className={`text-sm font-medium ${unused ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
           {type.name}
         </p>
@@ -32,12 +37,14 @@ function HardwareRow({ category, type, entry, setHardwareEntry }) {
               <Tag size={11} /> {type.brand}
             </span>
           )}
-          <span>· {formatCurrency(type.price)}/unit</span>
+          {num(type.price) > 0 && (
+            <span>· catalog {formatCurrency(type.price)}</span>
+          )}
         </div>
       </div>
 
       {/* Qty */}
-      <div className="col-span-4 sm:col-span-2">
+      <div className="col-span-3 sm:col-span-2">
         <input
           type="number"
           min="0"
@@ -51,13 +58,34 @@ function HardwareRow({ category, type, entry, setHardwareEntry }) {
         />
       </div>
 
-      {/* Line total */}
-      <div className="col-span-4 text-right text-sm font-semibold text-slate-700 sm:col-span-2">
+      {/* Amount (unit price — editable, saved per line) */}
+      <div className="col-span-4 sm:col-span-2">
+        <div
+          className={`flex items-center rounded-lg border bg-white transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 ${
+            unused ? 'border-slate-200 bg-slate-100' : 'border-slate-300'
+          }`}
+        >
+          <span className="select-none pl-2 text-sm text-slate-400">₹</span>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            placeholder="Amount"
+            value={unitPrice}
+            disabled={unused}
+            onChange={(e) => setHardwareEntry(type.id, { unitPrice: e.target.value })}
+            className="w-full bg-transparent px-2 py-2 text-right text-sm outline-none disabled:cursor-not-allowed"
+          />
+        </div>
+      </div>
+
+      {/* Line total (qty × amount) */}
+      <div className="col-span-5 text-right text-sm font-semibold text-slate-700 sm:col-span-2">
         {formatCurrency(lineTotal)}
       </div>
 
       {/* Unused tick */}
-      <div className="col-span-4 flex justify-end sm:col-span-3">
+      <div className="col-span-12 flex justify-end sm:col-span-2">
         <label
           className={`inline-flex cursor-pointer select-none items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
             unused
@@ -71,7 +99,7 @@ function HardwareRow({ category, type, entry, setHardwareEntry }) {
             onChange={(e) =>
               setHardwareEntry(type.id, {
                 unused: e.target.checked,
-                ...(e.target.checked ? { quantity: '' } : {}),
+                ...(e.target.checked ? { quantity: '', unitPrice: '' } : {}),
               })
             }
             className="h-3.5 w-3.5 accent-slate-500"
@@ -98,14 +126,15 @@ export default function HardwareSection({
       icon={Wrench}
       accent="amber"
       title="Hardware & Accessories"
-      description="Every catalog item is listed. Enter a quantity, or tick “Unused” to skip it."
+      description="Enter quantity and amount (price) for each item, or tick “Unused” to skip."
     >
       {/* Column headers (desktop) */}
       <div className="mb-1 hidden grid-cols-12 gap-3 px-2 text-xs font-medium uppercase tracking-wide text-slate-400 sm:grid">
-        <span className="col-span-5">Item</span>
+        <span className="col-span-4">Item</span>
         <span className="col-span-2 text-center">Qty</span>
+        <span className="col-span-2 text-right">Amount</span>
         <span className="col-span-2 text-right">Total</span>
-        <span className="col-span-3 text-right">Skip</span>
+        <span className="col-span-2 text-right">Skip</span>
       </div>
 
       <div className="space-y-4">
@@ -119,7 +148,6 @@ export default function HardwareSection({
                 {category.types.map((type) => (
                   <HardwareRow
                     key={type.id}
-                    category={category}
                     type={type}
                     entry={entries[type.id] || {}}
                     setHardwareEntry={setHardwareEntry}
@@ -142,13 +170,12 @@ export default function HardwareSection({
         )}
       </div>
 
-      {/* Hint about un-filled items */}
       {missingCount > 0 && (
         <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
             {missingCount} item{missingCount > 1 ? 's have' : ' has'} no quantity yet. Add a quantity
-            or tick <strong>Unused</strong> before generating the invoice.
+            or tick <strong>Unused</strong> before saving the invoice.
           </span>
         </div>
       )}

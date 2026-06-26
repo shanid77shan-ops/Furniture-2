@@ -55,7 +55,10 @@ export function useQuotationMath(state, catalog = []) {
         const entry = hardwareEntries[type.id] || {}
         const quantity = num(entry.quantity)
         const unused = !!entry.unused
-        const unitPrice = num(type.price)
+        const unitPrice =
+          entry.unitPrice !== undefined && entry.unitPrice !== ''
+            ? num(entry.unitPrice)
+            : num(type.price)
 
         if (unused) return
 
