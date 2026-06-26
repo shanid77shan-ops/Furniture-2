@@ -7,7 +7,6 @@ const uid = () =>
 
 /* -------------------------------------------------------------------------- */
 /*  Hardware catalog                                                          */
-/*  Structure: Category (main item) -> Types (name + optional brand + price)  */
 /* -------------------------------------------------------------------------- */
 
 export const createCatalogType = (overrides = {}) => ({
@@ -29,7 +28,6 @@ const t = (name, brand = '') => createCatalogType({ name, brand, price: 0 })
 const sizes = (brand, list) => list.map((s) => t(s, brand))
 const plain = (list) => list.map((name) => t(name, name))
 
-/** Inspire Furnitures — main items (@) and types (:). Prices default to 0. */
 export const getInitialCatalog = () => [
   createCatalogCategory({
     name: 'Box 17 mm Particle Board',
@@ -132,91 +130,85 @@ export const getInitialCatalog = () => [
   }),
 ]
 
-/* -------------------------------------------------------------------------- */
-/*  Hardware usage                                                            */
-/*  Every catalog type is shown to the user. Per type we only store the       */
-/*  quantity the user enters and whether they marked it as "unused".          */
-/*  Shape: { [typeId]: { quantity: string|number, unused: boolean } }         */
-/* -------------------------------------------------------------------------- */
-
-export const createCabinet = (overrides = {}) => ({
-  cabinet_id: uid(),
-  dimensions: { h: '', w: '', d: '' },
-  structure: { racks_in_vertical: '', dividers: '', material_thickness: 18 },
-  ...overrides,
-})
-
-/** Convert saved estimates that used flat height/width/depth (feet) into cabinets. */
+/** Upgrade saved estimates from old cabinet-based form. */
 export const migrateLegacyMaterial = (form = {}) => {
-  if (form.cabinets?.length) {
-    return {
-      ...form,
-      dimensionUnit: form.dimensionUnit || 'cm',
-      cabinets: form.cabinets.map((c) => ({
-        ...c,
-        structure: {
-          ...c.structure,
-          racks_in_vertical:
-            c.structure?.racks_in_vertical ?? c.structure?.shelves ?? '',
-        },
-      })),
-    }
-  }
+  if (form.productType) return form
 
-  const { height, width, depth, shelvesCount, verticalDividers, thicknessMm } = form
-  const hasLegacyDims = height || width || depth
-
-  if (!hasLegacyDims) {
-    return { ...form, dimensionUnit: form.dimensionUnit || 'cm', cabinets: [createCabinet()] }
-  }
+  const first = form.cabinets?.[0]
+  const dims = first?.dimensions || {}
 
   return {
     ...form,
-    dimensionUnit: 'ft',
-    cabinets: [
-      createCabinet({
-        dimensions: {
-          h: height ?? '',
-          w: width ?? '',
-          d: depth ?? '',
-        },
-        structure: {
-          racks_in_vertical: shelvesCount ?? '',
-          dividers: verticalDividers ?? '',
-          material_thickness: thicknessMm ?? 18,
-        },
-      }),
-    ],
+    productType: 'wardrobe',
+    sizeMode: 'custom',
+    dimensionUnit: form.dimensionUnit || 'in',
+    wardrobeDoors: 2,
+    dimensions: {
+      h: dims.h ?? form.height ?? '',
+      w: dims.w ?? form.width ?? '',
+      d: dims.d ?? form.depth ?? '',
+    },
+    structure: {
+      racks_in_vertical:
+        first?.structure?.racks_in_vertical ?? first?.structure?.shelves ?? '',
+      dividers: first?.structure?.dividers ?? '',
+    },
+    material: form.material || {
+      bodyBrand: 'Century',
+      bodyThickness: '17mm',
+      doorBrand: 'Century',
+      doorThickness: '17mm',
+      backBrand: 'Century',
+      backThickness: '9mm',
+    },
+    gstEnabled: form.gstEnabled ?? true,
+    marginPercent: form.marginPercent ?? form.profitMargin ?? 0,
+    transportCharge: form.transportCharge ?? form.shipping ?? '',
+    installationCharge: form.installationCharge ?? '',
+    extraHardwareCost: form.extraHardwareCost ?? '',
   }
 }
 
 export const getInitialState = () => ({
-  // Estimate meta
   projectName: '',
   clientName: '',
   quoteNumber: buildNextEstimateNumber(),
 
-  // 1. Material — cabinets (dimensions in dimensionUnit: cm | in | ft)
-  dimensionUnit: 'cm',
-  cabinets: [createCabinet()],
-  costPerSqFt: '',
-  wastagePercent: 15,
+  // Product & dimensions
+  productType: 'wardrobe',
+  sizeMode: 'custom',
+  bedSize: 'king',
+  cushionHeadboard: false,
+  headboardHeight: 24,
+  wardrobeDoors: 2,
+  dimensionUnit: 'in',
+  dimensions: { h: '', w: '', d: '' },
+  structure: { racks_in_vertical: '', dividers: '' },
 
-  // 2. Edge Banding
-  runningMeters: '',
-  edgeCostPerMeter: '',
+  // Material selection (brand + thickness per panel group)
+  material: {
+    bodyBrand: 'Century',
+    bodyThickness: '17mm',
+    doorBrand: 'Century',
+    doorThickness: '17mm',
+    backBrand: 'Century',
+    backThickness: '9mm',
+  },
 
-  // 3. Hardware & Accessories (quantities keyed by catalog type id)
+  // Hardware
   hardwareEntries: {},
-  // Main items the user has ticked to show types { [categoryId]: true }
   enabledCategories: {},
+  extraHardwareCost: '',
 
-  // 4. Labor & Machining
-  machiningPerSqFt: '',
-  installationPerSqFt: '',
+  // Overheads
+  transportCharge: '',
+  installationCharge: '',
 
-  // 5. Final Pricing
-  profitMargin: 20,
+  // Final pricing
+  gstEnabled: true,
   taxPercent: 18,
-  shipping: '',
+  marginPercent: 0,
+
+  // View mode
+  clientView: false,
 })

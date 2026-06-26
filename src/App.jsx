@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Calculator, LogOut, FileText, Loader2, AlertCircle, Pencil } from 'lucide-react'
-import { getInitialState, getInitialCatalog, createCabinet, migrateLegacyMaterial } from './constants'
+import { Calculator, LogOut, FileText, Loader2, AlertCircle, Pencil, Settings } from 'lucide-react'
+import { getInitialState, getInitialCatalog, migrateLegacyMaterial } from './constants'
 import { convertDimension } from './utils/materialCalc'
+import { loadMaterialRates } from './config/materialRates'
 import { useQuotationMath } from './hooks/useQuotationMath'
+import { downloadQuotationPdf } from './utils/downloadQuotationPdf'
 import { isSupabaseConfigured } from './lib/supabase'
 import * as api from './lib/api'
 import ProjectSection from './components/sections/ProjectSection'
-import MaterialSection from './components/sections/MaterialSection'
+import MaterialModuleSection from './components/sections/MaterialModuleSection'
 import HardwareSection from './components/sections/HardwareSection'
 import LaborSection from './components/sections/LaborSection'
 import MarginsSection from './components/sections/MarginsSection'
 import QuotationSummary from './components/QuotationSummary'
 import CatalogManager from './components/CatalogManager'
+import MaterialRatesAdmin from './components/MaterialRatesAdmin'
 import MissingItemsModal from './components/MissingItemsModal'
 import LoginScreen from './components/LoginScreen'
 import InvoicesModal from './components/InvoicesModal'
@@ -54,11 +57,13 @@ export default function App() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [toast, setToast] = useState('')
+  const [materialRates, setMaterialRates] = useState(loadMaterialRates)
+  const [ratesAdminOpen, setRatesAdminOpen] = useState(false)
 
   const catalogOpenRef = useRef(catalogOpen)
   catalogOpenRef.current = catalogOpen
 
-  const calc = useQuotationMath(state, catalog)
+  const calc = useQuotationMath(state, catalog, materialRates)
 
   /* ------------------------------- Data load ------------------------------ */
   const refreshCatalog = useCallback(async () => {
@@ -162,56 +167,50 @@ export default function App() {
     }))
   }, [])
 
-  const addCabinet = useCallback(() => {
-    setState((prev) => ({ ...prev, cabinets: [...(prev.cabinets || []), createCabinet()] }))
-  }, [])
-
-  const removeCabinet = useCallback((cabinetId) => {
-    setState((prev) => {
-      const list = prev.cabinets || []
-      if (list.length <= 1) return prev
-      return { ...prev, cabinets: list.filter((c) => c.cabinet_id !== cabinetId) }
-    })
-  }, [])
-
-  const updateCabinetDimensions = useCallback((cabinetId, key, value) => {
+  const setDimension = useCallback((key, value) => {
     setState((prev) => ({
       ...prev,
-      cabinets: (prev.cabinets || []).map((c) =>
-        c.cabinet_id === cabinetId
-          ? { ...c, dimensions: { ...c.dimensions, [key]: value } }
-          : c,
-      ),
+      dimensions: { ...prev.dimensions, [key]: value },
     }))
   }, [])
 
-  const updateCabinetStructure = useCallback((cabinetId, key, value) => {
+  const setStructure = useCallback((key, value) => {
     setState((prev) => ({
       ...prev,
-      cabinets: (prev.cabinets || []).map((c) =>
-        c.cabinet_id === cabinetId
-          ? { ...c, structure: { ...c.structure, [key]: value } }
-          : c,
-      ),
+      structure: { ...prev.structure, [key]: value },
+    }))
+  }, [])
+
+  const setMaterial = useCallback((key, value) => {
+    setState((prev) => ({
+      ...prev,
+      material: { ...prev.material, [key]: value },
     }))
   }, [])
 
   const setDimensionUnit = useCallback((newUnit) => {
     setState((prev) => {
-      const oldUnit = prev.dimensionUnit || 'cm'
+      const oldUnit = prev.dimensionUnit || 'in'
       if (oldUnit === newUnit) return prev
-
-      const cabinets = (prev.cabinets || []).map((c) => ({
-        ...c,
+      const dims = prev.dimensions || {}
+      return {
+        ...prev,
+        dimensionUnit: newUnit,
         dimensions: {
-          h: convertDimension(c.dimensions?.h, oldUnit, newUnit),
-          w: convertDimension(c.dimensions?.w, oldUnit, newUnit),
-          d: convertDimension(c.dimensions?.d, oldUnit, newUnit),
+          h: convertDimension(dims.h, oldUnit, newUnit),
+          w: convertDimension(dims.w, oldUnit, newUnit),
+          d: convertDimension(dims.d, oldUnit, newUnit),
         },
-      }))
-
-      return { ...prev, dimensionUnit: newUnit, cabinets }
+      }
     })
+  }, [])
+
+  const handleDownloadPdf = useCallback(() => {
+    downloadQuotationPdf({ state, calc, clientView: state.clientView })
+  }, [state, calc])
+
+  const handleToggleClientView = useCallback(() => {
+    setState((prev) => ({ ...prev, clientView: !prev.clientView }))
   }, [])
 
   /* ----------------------------- Catalog CRUD ----------------------------- */
@@ -471,6 +470,14 @@ export default function App() {
           </div>
           <button
             type="button"
+            onClick={() => setRatesAdminOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            title="Material rates admin"
+          >
+            <Settings size={16} /> <span className="hidden sm:inline">Rates</span>
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setInvoicesOpen(true)
               refreshInvoices()
@@ -518,17 +525,17 @@ export default function App() {
           {/* Left: Inputs */}
           <div className="no-print space-y-6">
             <ProjectSection state={state} set={set} />
-            <MaterialSection
+            <MaterialModuleSection
               state={state}
               set={set}
-              calc={calc}
-              addCabinet={addCabinet}
-              updateCabinetDimensions={updateCabinetDimensions}
-              updateCabinetStructure={updateCabinetStructure}
-              removeCabinet={removeCabinet}
+              setDimension={setDimension}
+              setStructure={setStructure}
+              setMaterial={setMaterial}
               setDimensionUnit={setDimensionUnit}
+              calc={calc}
+              materialRates={materialRates}
             />
-            <LaborSection state={state} set={set} calc={calc} />
+            <LaborSection calc={calc} />
             {catalogLoading ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-400">
                 <Loader2 size={18} className="animate-spin" /> Loading hardware catalog…
@@ -554,6 +561,8 @@ export default function App() {
               onPrint={handleGenerate}
               onReset={handleReset}
               onSave={handleSaveInvoice}
+              onDownloadPdf={handleDownloadPdf}
+              onToggleClientView={handleToggleClientView}
               saving={saving}
               isEditing={Boolean(editingId)}
             />
@@ -564,6 +573,13 @@ export default function App() {
       <footer className="no-print mx-auto max-w-6xl px-4 pb-8 text-center text-xs text-slate-400 sm:px-6">
         Data syncs live with your Supabase backend. Saved estimates are available on any device.
       </footer>
+
+      <MaterialRatesAdmin
+        open={ratesAdminOpen}
+        onClose={() => setRatesAdminOpen(false)}
+        rates={materialRates}
+        onSave={setMaterialRates}
+      />
 
       <CatalogManager
         open={catalogOpen}

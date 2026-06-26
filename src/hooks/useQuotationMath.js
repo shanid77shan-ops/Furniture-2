@@ -1,70 +1,43 @@
 import { useMemo } from 'react'
-import { calcMaterialFromCabinets } from '../utils/materialCalc'
+import { calcProductMaterial } from '../utils/productMaterialCalc'
 
-/**
- * Safely coerce any form value (string | number | '') to a finite number.
- */
 const num = (value) => {
   const n = typeof value === 'number' ? value : parseFloat(value)
   return Number.isFinite(n) ? n : 0
 }
 
 /**
- * useQuotationMath
- * -----------------
- * Pure calculation hook for a particle-board furniture quotation.
- * All business/industry math lives here so the UI stays presentational.
- *
- * @param {object} state - the full quotation form state.
- * @param {Array} catalog - hardware catalog (categories -> types).
- * @returns {object} a fully derived breakdown of the estimate.
+ * Full estimation engine:
+ * Material → Labor (45%) → Hardware + Extras → GST → Margin → Grand Total
  */
-export function useQuotationMath(state, catalog = []) {
+export function useQuotationMath(state, catalog = [], materialRates = []) {
   return useMemo(() => {
     const {
-      cabinets = [],
-      dimensionUnit = 'cm',
-      costPerSqFt,
-      wastagePercent,
-      runningMeters,
-      edgeCostPerMeter,
       hardwareEntries = {},
       enabledCategories = {},
-      machiningPerSqFt,
-      installationPerSqFt,
-      profitMargin,
-      taxPercent,
-      shipping,
+      extraHardwareCost = '',
+      transportCharge = '',
+      installationCharge = '',
+      gstEnabled = true,
+      taxPercent = 18,
+      marginPercent = 0,
     } = state
 
-    // 1. Particle Board (from cabinet entries) -----------------------------
-    const material = calcMaterialFromCabinets(cabinets, {
-      dimensionUnit,
-      wastagePercent,
-      costPerSqFt,
-    })
-    const {
-      cabinets: cabinetResults,
-      outerArea,
-      innerArea,
-      dividerArea,
-      totalMaterial,
-      actualArea,
-      boardCost,
-    } = material
+    // A. Material cost -------------------------------------------------------
+    const material = calcProductMaterial(state, materialRates)
+    const materialCost = material.materialCost
 
-    // 2. Edge Banding ------------------------------------------------------
-    const edgeCost = num(runningMeters) * num(edgeCostPerMeter)
+    // B. Labor = 45% of material (15% + 15% + 15%) ---------------------------
+    const laborTotal = materialCost * 0.45
+    const laborCutting = materialCost * 0.15
+    const laborEdgeBanding = materialCost * 0.15
+    const laborAssembling = materialCost * 0.15
 
-    // 3. Hardware & Accessories -------------------------------------------
-    // Walk the whole catalog; only items with a quantity (and not flagged
-    // "unused") contribute to the estimate. "missing" tracks items the user
-    // neither quantified nor explicitly skipped.
+    // C. Hardware ------------------------------------------------------------
     const hardwareLines = []
     const missingHardware = []
 
     ;(catalog || []).forEach((category) => {
-      // Only validate and bill categories the user has enabled.
       if (!enabledCategories[category.id]) return
 
       ;(category.types || []).forEach((type) => {
@@ -99,40 +72,52 @@ export function useQuotationMath(state, catalog = []) {
       })
     })
 
-    const hardwareCost = hardwareLines.reduce((sum, i) => sum + i.lineTotal, 0)
+    const catalogHardwareCost = hardwareLines.reduce((sum, i) => sum + i.lineTotal, 0)
+    const customHardwareCost = num(extraHardwareCost)
+    const hardwareCost = catalogHardwareCost + customHardwareCost
 
-    // 4. Labor & Machining -------------------------------------------------
-    const laborRate = num(machiningPerSqFt) + num(installationPerSqFt)
-    const laborCost = actualArea * laborRate
+    const transport = num(transportCharge)
+    const installation = num(installationCharge)
+    const extraCharges = transport + installation
 
-    // 5. Final Estimate Pricing -------------------------------------------
-    const subtotal = boardCost + edgeCost + hardwareCost + laborCost
-    const profitAmount = subtotal * (num(profitMargin) / 100)
-    const preTaxTotal = subtotal + profitAmount
-    const taxAmount = preTaxTotal * (num(taxPercent) / 100)
-    // Transport / shipping is a flat pass-through added after tax.
-    const shippingCharge = num(shipping)
-    const grandTotal = preTaxTotal + taxAmount + shippingCharge
+    // D. Subtotal ------------------------------------------------------------
+    const subtotal = materialCost + laborTotal + hardwareCost + extraCharges
+
+    // E. GST (optional) ------------------------------------------------------
+    const taxAmount = gstEnabled ? subtotal * (num(taxPercent) / 100) : 0
+    const afterTax = subtotal + taxAmount
+
+    // F. Margin / discount at end --------------------------------------------
+    const marginAmount = afterTax * (num(marginPercent) / 100)
+    const grandTotal = afterTax + marginAmount
 
     return {
-      cabinetResults,
-      outerArea,
-      innerArea,
-      dividerArea,
-      totalMaterial,
-      actualArea,
-      boardCost,
-      edgeCost,
+      material,
+      materialCost,
+      laborTotal,
+      laborCutting,
+      laborEdgeBanding,
+      laborAssembling,
+      laborCost: laborTotal,
       hardwareLines,
       hardwareCost,
+      catalogHardwareCost,
+      customHardwareCost,
       missingHardware,
-      laborCost,
+      transport,
+      installation,
+      extraCharges,
       subtotal,
-      profitAmount,
-      preTaxTotal,
+      gstEnabled,
       taxAmount,
-      shippingCharge,
+      afterTax,
+      marginAmount,
+      marginPercent: num(marginPercent),
       grandTotal,
+      // legacy aliases for summary compatibility
+      boardCost: materialCost,
+      totalArea: material.totalArea,
+      actualArea: material.totalArea,
     }
-  }, [state, catalog])
+  }, [state, catalog, materialRates])
 }
