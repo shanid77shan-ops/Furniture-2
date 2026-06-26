@@ -145,8 +145,13 @@ export const getInitialState = () => ({
   clientName: '',
   quoteNumber: buildNextEstimateNumber(),
 
-  // 1. Particle Board
-  requiredArea: '',
+  // 1. Material — dimensions (feet) + internal layout
+  height: '',
+  width: '',
+  depth: '',
+  shelvesCount: '',
+  verticalDividers: '',
+  thicknessMm: 18,
   costPerSqFt: '',
   wastagePercent: 15,
 

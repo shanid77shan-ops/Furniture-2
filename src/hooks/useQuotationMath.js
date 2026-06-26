@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { calcMaterialFromDimensions } from '../utils/materialCalc'
 
 /**
  * Safely coerce any form value (string | number | '') to a finite number.
@@ -21,7 +22,12 @@ const num = (value) => {
 export function useQuotationMath(state, catalog = []) {
   return useMemo(() => {
     const {
-      requiredArea,
+      height,
+      width,
+      depth,
+      shelvesCount,
+      verticalDividers,
+      thicknessMm,
       costPerSqFt,
       wastagePercent,
       runningMeters,
@@ -35,11 +41,25 @@ export function useQuotationMath(state, catalog = []) {
       shipping,
     } = state
 
-    // 1. Particle Board ----------------------------------------------------
-    const reqArea = num(requiredArea)
-    const wastage = num(wastagePercent)
-    const actualArea = reqArea + reqArea * (wastage / 100)
-    const boardCost = actualArea * num(costPerSqFt)
+    // 1. Particle Board (from dimensions) ----------------------------------
+    const material = calcMaterialFromDimensions({
+      height,
+      width,
+      depth,
+      shelvesCount,
+      verticalDividers,
+      thicknessMm,
+      wastagePercent,
+      costPerSqFt,
+    })
+    const {
+      outerArea,
+      innerArea,
+      dividerArea,
+      totalMaterial,
+      actualArea,
+      boardCost,
+    } = material
 
     // 2. Edge Banding ------------------------------------------------------
     const edgeCost = num(runningMeters) * num(edgeCostPerMeter)
@@ -103,6 +123,10 @@ export function useQuotationMath(state, catalog = []) {
     const grandTotal = preTaxTotal + taxAmount + shippingCharge
 
     return {
+      outerArea,
+      innerArea,
+      dividerArea,
+      totalMaterial,
       actualArea,
       boardCost,
       edgeCost,

@@ -88,6 +88,15 @@ export default function QuotationSummary({
           Cost Breakdown
         </p>
         <Row label="Particle Board" value={formatCurrency(calc.boardCost)} />
+        {calc.totalMaterial > 0 && (
+          <div className="my-1 border-l-2 border-slate-100 pl-3">
+            <Row label="Outer panels" value={`${formatNumber(calc.outerArea)} sq.ft.`} />
+            <Row label="Inner shelves" value={`${formatNumber(calc.innerArea)} sq.ft.`} />
+            {calc.dividerArea > 0 && (
+              <Row label="Vertical dividers" value={`${formatNumber(calc.dividerArea)} sq.ft.`} />
+            )}
+          </div>
+        )}
         <Row label="Edge Banding" value={formatCurrency(calc.edgeCost)} />
 
         {/* Hardware detail (mainly for the printed invoice) */}
