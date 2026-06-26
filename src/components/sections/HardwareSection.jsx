@@ -203,7 +203,7 @@ export default function HardwareSection({
 
       {enabledCount === 0 && catalog.length > 0 && (
         <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          Tick the main items you need for this invoice to show their types.
+          Tick the main items you need for this estimate to show their types.
         </div>
       )}
 

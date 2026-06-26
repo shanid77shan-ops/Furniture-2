@@ -1,3 +1,5 @@
+import { buildNextEstimateNumber } from './utils/estimateNumber'
+
 const uid = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -138,10 +140,10 @@ export const getInitialCatalog = () => [
 /* -------------------------------------------------------------------------- */
 
 export const getInitialState = () => ({
-  // Project meta
+  // Estimate meta
   projectName: '',
   clientName: '',
-  quoteNumber: 'INV-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
+  quoteNumber: buildNextEstimateNumber(),
 
   // 1. Particle Board
   requiredArea: '',

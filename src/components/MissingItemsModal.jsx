@@ -42,7 +42,7 @@ export default function MissingItemsModal({
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   Please review each item below — add a quantity if you’re using it, or tick
-                  “Unused” if you’re not. The invoice can only be {isSave ? 'saved' : 'saved & printed'}{' '}
+                  “Unused” if you’re not. The estimate can only be {isSave ? 'saved' : 'saved & printed'}{' '}
                   once every item is handled.
                 </p>
               </div>

@@ -84,6 +84,17 @@ export default function App() {
     }
   }, [])
 
+  const startNewEstimate = useCallback(async () => {
+    try {
+      const next = await api.getNextEstimateNumber()
+      setEditingId(null)
+      setState({ ...getInitialState(), quoteNumber: next })
+    } catch {
+      setEditingId(null)
+      setState(getInitialState())
+    }
+  }, [])
+
   useEffect(() => {
     if (!user || !isSupabaseConfigured) return
     setCatalogLoading(true)
@@ -99,6 +110,12 @@ export default function App() {
       unsubInvoices()
     }
   }, [user, refreshCatalog, refreshInvoices])
+
+  // Assign the next sequential estimate number when the user session starts.
+  useEffect(() => {
+    if (!user || !isSupabaseConfigured) return
+    startNewEstimate()
+  }, [user, startNewEstimate])
 
   // Auto-dismiss the success toast.
   useEffect(() => {
@@ -283,16 +300,15 @@ export default function App() {
         refreshInvoices()
         // Print the current invoice (DOM still reflects this quote) before reset.
         if (print) window.print()
-        setToast(`Invoice ${number} ${wasEditing ? 'updated' : 'saved'} successfully`)
-        setEditingId(null)
-        setState(getInitialState())
+        setToast(`Estimate ${number} ${wasEditing ? 'updated' : 'saved'} successfully`)
+        await startNewEstimate()
       } catch (err) {
         alert(err.message)
       } finally {
         setSaving(false)
       }
     },
-    [state, calc.grandTotal, editingId, catalog, refreshInvoices],
+    [state, calc.grandTotal, editingId, catalog, refreshInvoices, startNewEstimate],
   )
 
   // Both "Save Invoice" and "Print / PDF" persist the invoice. They are
@@ -328,7 +344,7 @@ export default function App() {
           setState(next)
           setEditingId(id)
           setInvoicesOpen(false)
-          setToast(`Editing invoice ${row.quote_number || ''}`.trim())
+          setToast(`Editing estimate ${row.quote_number || ''}`.trim())
         }
       } catch (err) {
         alert(err.message)
@@ -339,7 +355,7 @@ export default function App() {
 
   const handleDeleteInvoice = useCallback(
     async (id) => {
-      if (!window.confirm('Delete this saved invoice?')) return
+      if (!window.confirm('Delete this saved estimate?')) return
       setInvoices((prev) => prev.filter((i) => i.id !== id))
       if (id === editingId) setEditingId(null)
       try {
@@ -353,11 +369,10 @@ export default function App() {
 
   /* ------------------------------- Actions -------------------------------- */
   const handleReset = useCallback(() => {
-    if (window.confirm('Clear all inputs and start a new quotation?')) {
-      setState(getInitialState())
-      setEditingId(null)
+    if (window.confirm('Clear all inputs and start a new estimate?')) {
+      startNewEstimate()
     }
-  }, [])
+  }, [startNewEstimate])
 
   const handleGenerate = useCallback(() => {
     if (calc.missingHardware.length > 0) {
@@ -408,7 +423,7 @@ export default function App() {
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
-            <FileText size={16} /> <span className="hidden sm:inline">Invoices</span>
+            <FileText size={16} /> <span className="hidden sm:inline">Estimates</span>
           </button>
           <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2 text-sm">
             <span className="font-medium text-slate-600">{user.username}</span>
@@ -433,8 +448,8 @@ export default function App() {
         {editingId && (
           <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             <span className="flex items-center gap-2">
-              <Pencil size={15} /> Editing invoice <strong>{state.quoteNumber}</strong> — “Update
-              Invoice” saves your changes.
+              <Pencil size={15} /> Editing estimate <strong>{state.quoteNumber}</strong> — “Update
+              Estimate” saves your changes.
             </span>
             <button
               type="button"
@@ -484,7 +499,7 @@ export default function App() {
       </main>
 
       <footer className="no-print mx-auto max-w-6xl px-4 pb-8 text-center text-xs text-slate-400 sm:px-6">
-        Data syncs live with your Supabase backend. Saved invoices are available on any device.
+        Data syncs live with your Supabase backend. Saved estimates are available on any device.
       </footer>
 
       <CatalogManager

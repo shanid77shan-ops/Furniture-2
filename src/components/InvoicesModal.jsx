@@ -51,8 +51,8 @@ export default function InvoicesModal({
                   <FileText size={18} />
                 </span>
                 <div>
-                  <h2 className="text-base font-semibold text-slate-800">Invoice Report</h2>
-                  <p className="text-xs text-slate-500">View, edit or delete saved invoices.</p>
+                  <h2 className="text-base font-semibold text-slate-800">Estimate Report</h2>
+                  <p className="text-xs text-slate-500">View, edit or delete saved estimates.</p>
                 </div>
               </div>
               <button
@@ -68,7 +68,7 @@ export default function InvoicesModal({
             <div className="grid grid-cols-3 gap-px border-b border-slate-200 bg-slate-200">
               <div className="bg-white px-4 py-3">
                 <p className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-slate-400">
-                  <Receipt size={12} /> Invoices
+                  <Receipt size={12} /> Estimates
                 </p>
                 <p className="mt-0.5 text-lg font-bold text-slate-800">{invoices.length}</p>
               </div>
@@ -94,7 +94,7 @@ export default function InvoicesModal({
               ) : invoices.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-slate-400">
                   <Inbox size={28} />
-                  No saved invoices yet.
+                  No saved estimates yet.
                 </div>
               ) : (
                 <ul className="space-y-2">
@@ -108,7 +108,7 @@ export default function InvoicesModal({
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-slate-800">
-                            {inv.quote_number || 'Invoice'}
+                            {inv.quote_number || 'Estimate'}
                             {inv.id === editingId && (
                               <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                                 editing
@@ -116,7 +116,7 @@ export default function InvoicesModal({
                             )}
                           </p>
                           <p className="mt-0.5 truncate text-xs text-slate-500">
-                            {inv.project_name || 'Untitled project'}
+                            {inv.project_name || 'Untitled product'}
                             {inv.client_name ? ` · ${inv.client_name}` : ''}
                           </p>
                           <p className="mt-0.5 truncate text-[11px] text-slate-400">
@@ -131,7 +131,7 @@ export default function InvoicesModal({
                             <button
                               type="button"
                               onClick={() => onEdit(inv.id)}
-                              title="Edit invoice"
+                              title="Edit estimate"
                               className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100"
                             >
                               <Pencil size={13} /> Edit
@@ -139,7 +139,7 @@ export default function InvoicesModal({
                             <button
                               type="button"
                               onClick={() => onDelete(inv.id)}
-                              title="Delete invoice"
+                              title="Delete estimate"
                               className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
                             >
                               <Trash2 size={15} />

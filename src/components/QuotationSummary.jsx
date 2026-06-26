@@ -55,7 +55,7 @@ export default function QuotationSummary({
             <p className="text-xs text-slate-300">{COMPANY.tagline}</p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400">Invoice No.</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">Estimate No.</p>
             <p className="text-sm font-semibold">{state.quoteNumber}</p>
           </div>
         </div>
@@ -65,7 +65,7 @@ export default function QuotationSummary({
       {/* ---------- Meta ---------- */}
       <div className="grid grid-cols-2 gap-3 border-b border-slate-100 px-6 py-4 text-sm">
         <div>
-          <p className="text-xs text-slate-400">Project</p>
+          <p className="text-xs text-slate-400">Product</p>
           <p className="font-medium text-slate-700">{state.projectName || '—'}</p>
         </div>
         <div className="text-right">
@@ -151,7 +151,7 @@ export default function QuotationSummary({
             </>
           ) : (
             <>
-              <Save size={16} /> {isEditing ? 'Update Invoice' : 'Save Invoice'}
+              <Save size={16} /> {isEditing ? 'Update Estimate' : 'Save Estimate'}
             </>
           )}
         </button>

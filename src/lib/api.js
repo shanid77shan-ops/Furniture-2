@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { buildNextEstimateNumber } from '../utils/estimateNumber'
 
 /* ----------------------------- Simple auth ------------------------------- */
 /* NOTE: This is an app-level username/password gate stored in `app_users`.
@@ -173,6 +174,13 @@ export async function updateInvoice(id, { quoteNumber, projectName, clientName, 
     .single()
   if (error) throw new Error(error.message)
   return row
+}
+
+export async function getNextEstimateNumber() {
+  const { data, error } = await supabase.from('invoices').select('quote_number')
+  if (error) throw new Error(error.message)
+  const numbers = (data || []).map((row) => row.quote_number).filter(Boolean)
+  return buildNextEstimateNumber(numbers)
 }
 
 export async function listInvoices() {
