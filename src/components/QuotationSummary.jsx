@@ -90,6 +90,15 @@ export default function QuotationSummary({
         <Row label="Particle Board" value={formatCurrency(calc.boardCost)} />
         {calc.totalMaterial > 0 && (
           <div className="my-1 border-l-2 border-slate-100 pl-3">
+            {calc.cabinetResults?.map((cabinet, index) =>
+              cabinet.calculated_area > 0 ? (
+                <Row
+                  key={cabinet.cabinet_id}
+                  label={`Cabinet ${index + 1}`}
+                  value={`${formatNumber(cabinet.calculated_area)} sq.ft.`}
+                />
+              ) : null,
+            )}
             <Row label="Outer panels" value={`${formatNumber(calc.outerArea)} sq.ft.`} />
             <Row label="Inner shelves" value={`${formatNumber(calc.innerArea)} sq.ft.`} />
             {calc.dividerArea > 0 && (

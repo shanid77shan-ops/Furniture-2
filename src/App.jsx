@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Calculator, LogOut, FileText, Loader2, AlertCircle, Pencil } from 'lucide-react'
-import { getInitialState, getInitialCatalog } from './constants'
+import { getInitialState, getInitialCatalog, createCabinet, migrateLegacyMaterial } from './constants'
 import { useQuotationMath } from './hooks/useQuotationMath'
 import { isSupabaseConfigured } from './lib/supabase'
 import * as api from './lib/api'
@@ -158,6 +158,40 @@ export default function App() {
     setState((prev) => ({
       ...prev,
       enabledCategories: { ...prev.enabledCategories, [categoryId]: enabled },
+    }))
+  }, [])
+
+  const addCabinet = useCallback(() => {
+    setState((prev) => ({ ...prev, cabinets: [...(prev.cabinets || []), createCabinet()] }))
+  }, [])
+
+  const removeCabinet = useCallback((cabinetId) => {
+    setState((prev) => {
+      const list = prev.cabinets || []
+      if (list.length <= 1) return prev
+      return { ...prev, cabinets: list.filter((c) => c.cabinet_id !== cabinetId) }
+    })
+  }, [])
+
+  const updateCabinetDimensions = useCallback((cabinetId, key, value) => {
+    setState((prev) => ({
+      ...prev,
+      cabinets: (prev.cabinets || []).map((c) =>
+        c.cabinet_id === cabinetId
+          ? { ...c, dimensions: { ...c.dimensions, [key]: value } }
+          : c,
+      ),
+    }))
+  }, [])
+
+  const updateCabinetStructure = useCallback((cabinetId, key, value) => {
+    setState((prev) => ({
+      ...prev,
+      cabinets: (prev.cabinets || []).map((c) =>
+        c.cabinet_id === cabinetId
+          ? { ...c, structure: { ...c.structure, [key]: value } }
+          : c,
+      ),
     }))
   }, [])
 
@@ -328,7 +362,8 @@ export default function App() {
         const row = await api.getInvoice(id)
         const form = row?.data?.form
         if (form) {
-          const next = { ...getInitialState(), ...form }
+          const migrated = migrateLegacyMaterial(form)
+          const next = { ...getInitialState(), ...migrated }
           const saved = form.enabledCategories || {}
           if (Object.keys(saved).length === 0) {
             const enabled = {}
@@ -464,7 +499,15 @@ export default function App() {
           {/* Left: Inputs */}
           <div className="no-print space-y-6">
             <ProjectSection state={state} set={set} />
-            <MaterialSection state={state} set={set} calc={calc} />
+            <MaterialSection
+              state={state}
+              set={set}
+              calc={calc}
+              addCabinet={addCabinet}
+              updateCabinetDimensions={updateCabinetDimensions}
+              updateCabinetStructure={updateCabinetStructure}
+              removeCabinet={removeCabinet}
+            />
             {catalogLoading ? (
               <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-400">
                 <Loader2 size={18} className="animate-spin" /> Loading hardware catalog…

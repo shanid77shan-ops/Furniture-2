@@ -139,19 +139,56 @@ export const getInitialCatalog = () => [
 /*  Shape: { [typeId]: { quantity: string|number, unused: boolean } }         */
 /* -------------------------------------------------------------------------- */
 
+export const createCabinet = (overrides = {}) => ({
+  cabinet_id: uid(),
+  dimensions: { h: '', w: '', d: '' },
+  structure: { shelves: '', dividers: '', material_thickness: 18 },
+  ...overrides,
+})
+
+/** Convert saved estimates that used flat height/width/depth (feet) into cabinets (cm). */
+export const migrateLegacyMaterial = (form = {}) => {
+  if (form.cabinets?.length) return form
+
+  const { height, width, depth, shelvesCount, verticalDividers, thicknessMm } = form
+  const hasLegacyDims = height || width || depth
+
+  if (!hasLegacyDims) {
+    return { ...form, cabinets: [createCabinet()] }
+  }
+
+  const feetToCm = (ft) => {
+    const n = parseFloat(ft)
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 30.48 * 10) / 10 : ''
+  }
+
+  return {
+    ...form,
+    cabinets: [
+      createCabinet({
+        dimensions: {
+          h: feetToCm(height),
+          w: feetToCm(width),
+          d: feetToCm(depth),
+        },
+        structure: {
+          shelves: shelvesCount ?? '',
+          dividers: verticalDividers ?? '',
+          material_thickness: thicknessMm ?? 18,
+        },
+      }),
+    ],
+  }
+}
+
 export const getInitialState = () => ({
   // Estimate meta
   projectName: '',
   clientName: '',
   quoteNumber: buildNextEstimateNumber(),
 
-  // 1. Material — dimensions (feet) + internal layout
-  height: '',
-  width: '',
-  depth: '',
-  shelvesCount: '',
-  verticalDividers: '',
-  thicknessMm: 18,
+  // 1. Material — cabinets (dimensions in cm)
+  cabinets: [createCabinet()],
   costPerSqFt: '',
   wastagePercent: 15,
 

@@ -1,4 +1,5 @@
-import { Wrench, Settings2, Tag, Ban, AlertTriangle } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Wrench, Settings2, Tag, Ban, AlertTriangle, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import SectionCard from '../ui/SectionCard'
 import { formatCurrency } from '../../utils/format'
@@ -121,14 +122,61 @@ export default function HardwareSection({
   const enabled = state.enabledCategories || {}
   const missingCount = calc.missingHardware.length
   const enabledCount = Object.values(enabled).filter(Boolean).length
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredCatalog = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return catalog
+
+    return catalog.filter((category) => {
+      if (category.name.toLowerCase().includes(q)) return true
+      return category.types.some(
+        (type) =>
+          type.name.toLowerCase().includes(q) ||
+          (type.brand && type.brand.toLowerCase().includes(q)),
+      )
+    })
+  }, [catalog, searchQuery])
+
+  const isSearching = searchQuery.trim().length > 0
 
   return (
     <SectionCard
       icon={Wrench}
       accent="amber"
       title="Hardware & Accessories"
-      description="Tick a main item to show its types, then enter quantity and amount."
+      description="Search or tick a main item to show its types, then enter quantity and amount."
     >
+      <div className="relative mb-4">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search main items (e.g. hinges, handles, channels)…"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm outline-none transition focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-100"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      {isSearching && (
+        <p className="mb-3 text-xs text-slate-500">
+          {filteredCatalog.length} main item{filteredCatalog.length !== 1 ? 's' : ''} matching
+          &ldquo;{searchQuery.trim()}&rdquo;
+        </p>
+      )}
       <div className="mb-1 hidden grid-cols-12 gap-3 px-2 text-xs font-medium uppercase tracking-wide text-slate-400 sm:grid">
         <span className="col-span-4">Main item</span>
         <span className="col-span-2 text-center">Qty</span>
@@ -138,7 +186,7 @@ export default function HardwareSection({
       </div>
 
       <div className="space-y-3">
-        {catalog.map((category) => {
+        {filteredCatalog.map((category) => {
           const isEnabled = !!enabled[category.id]
           return (
             <div
@@ -193,6 +241,12 @@ export default function HardwareSection({
             </div>
           )
         })}
+
+        {filteredCatalog.length === 0 && catalog.length > 0 && isSearching && (
+          <p className="rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">
+            No main items match your search. Try a different keyword.
+          </p>
+        )}
 
         {catalog.length === 0 && (
           <p className="rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">

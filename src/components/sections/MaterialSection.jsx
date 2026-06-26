@@ -1,163 +1,242 @@
-import { Layers, Ruler, Box } from 'lucide-react'
+import { Plus, Trash2, Layers } from 'lucide-react'
 import SectionCard from '../ui/SectionCard'
-import Field from '../ui/Field'
-import { formatNumber, formatCurrency } from '../../utils/format'
+import { formatCurrency, formatNumber } from '../../utils/format'
+import { calcCabinet } from '../../utils/materialCalc'
 
-function CalcRow({ label, value, sub }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-sm">
-      <span className="text-slate-500">
-        {label}
-        {sub && <span className="ml-1 text-xs text-slate-400">{sub}</span>}
-      </span>
-      <span className="font-semibold text-slate-700">{value}</span>
-    </div>
-  )
-}
+const dimFields = [
+  { key: 'h', label: 'Height (cm)' },
+  { key: 'w', label: 'Width (cm)' },
+  { key: 'd', label: 'Depth (cm)' },
+]
 
-export default function MaterialSection({ state, set, calc }) {
+export default function MaterialSection({
+  state,
+  set,
+  calc,
+  addCabinet,
+  updateCabinetDimensions,
+  updateCabinetStructure,
+  removeCabinet,
+}) {
+  const cabinets = state.cabinets?.length ? state.cabinets : []
+
   return (
     <SectionCard
       icon={Layers}
-      accent="indigo"
-      title="Material — Particle Board"
-      description="Enter cupboard dimensions; outer panels, shelves & dividers are calculated automatically."
+      accent="blue"
+      title="1. Material (Particle Board)"
+      description="Add cabinets with external dimensions in cm; area is calculated in sq ft."
     >
-      <div className="space-y-5">
-        {/* External dimensions */}
-        <div>
-          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            <Box size={14} /> External dimensions
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field
-              label="Height"
-              suffix="ft"
-              value={state.height}
-              onChange={(v) => set('height', v)}
+      <div className="space-y-4">
+        {cabinets.map((cabinet, index) => {
+          const result = calcCabinet(cabinet)
+          const canRemove = cabinets.length > 1
+
+          return (
+            <div
+              key={cabinet.cabinet_id}
+              className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-800">
+                  Cabinet {index + 1}
+                  {result.calculated_area > 0 && (
+                    <span className="ml-2 text-xs font-normal text-emerald-700">
+                      {formatNumber(result.calculated_area, 2)} sq ft
+                    </span>
+                  )}
+                </p>
+                {canRemove && (
+                  <button
+                    type="button"
+                    onClick={() => removeCabinet(cabinet.cabinet_id)}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {dimFields.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={cabinet.dimensions?.[key] ?? ''}
+                      onChange={(e) => updateCabinetDimensions(cabinet.cabinet_id, key, e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Shelves</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={cabinet.structure?.shelves ?? ''}
+                    onChange={(e) =>
+                      updateCabinetStructure(cabinet.cabinet_id, 'shelves', e.target.value)
+                    }
+                    placeholder="0"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Vertical dividers
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={cabinet.structure?.dividers ?? ''}
+                    onChange={(e) =>
+                      updateCabinetStructure(cabinet.cabinet_id, 'dividers', e.target.value)
+                    }
+                    placeholder="0"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Thickness (mm)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={cabinet.structure?.material_thickness ?? 18}
+                    onChange={(e) =>
+                      updateCabinetStructure(
+                        cabinet.cabinet_id,
+                        'material_thickness',
+                        e.target.value,
+                      )
+                    }
+                    placeholder="18"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {result.calculated_area > 0 && (
+                <div className="rounded-lg bg-white border border-slate-100 px-3 py-2 text-xs text-slate-600 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <span>Outer: {formatNumber(result.outerArea, 2)} sq ft</span>
+                  <span>Shelves: {formatNumber(result.innerArea, 2)} sq ft</span>
+                  <span>Dividers: {formatNumber(result.dividerArea, 2)} sq ft</span>
+                  <span className="font-medium text-emerald-700">
+                    Total: {formatNumber(result.calculated_area, 2)} sq ft
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        <button
+          type="button"
+          onClick={addCabinet}
+          className="inline-flex items-center gap-2 rounded-lg border border-dashed border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add cabinet
+        </button>
+
+        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Cost per sq ft (₹)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={state.costPerSqFt}
+              onChange={(e) => set('costPerSqFt', e.target.value)}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
-            <Field
-              label="Width"
-              suffix="ft"
-              value={state.width}
-              onChange={(v) => set('width', v)}
-            />
-            <Field
-              label="Depth"
-              suffix="ft"
-              value={state.depth}
-              onChange={(v) => set('depth', v)}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Wastage (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
+              value={state.wastagePercent}
+              onChange={(e) => set('wastagePercent', e.target.value)}
+              placeholder="15"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
         </div>
 
-        {/* Internal layout */}
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            Internal layout
-          </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field
-              label="Shelves count"
-              value={state.shelvesCount}
-              onChange={(v) => set('shelvesCount', v)}
-              placeholder="0"
-            />
-            <Field
-              label="Vertical dividers"
-              value={state.verticalDividers}
-              onChange={(v) => set('verticalDividers', v)}
-              placeholder="0"
-            />
-            <Field
-              label="Board thickness"
-              suffix="mm"
-              value={state.thicknessMm}
-              onChange={(v) => set('thicknessMm', v)}
-              hint="Default 18 mm"
-            />
+        {calc.totalMaterial > 0 && (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm space-y-1">
+            <div className="flex justify-between text-slate-600">
+              <span>Combined material area</span>
+              <span>{formatNumber(calc.totalMaterial, 2)} sq ft</span>
+            </div>
+            <div className="flex justify-between text-slate-600">
+              <span>With wastage ({state.wastagePercent || 0}%)</span>
+              <span>{formatNumber(calc.actualArea, 2)} sq ft</span>
+            </div>
+            <div className="flex justify-between font-semibold text-emerald-800 pt-1 border-t border-emerald-100">
+              <span>Board cost</span>
+              <span>{formatCurrency(calc.boardCost)}</span>
+            </div>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Pricing */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field
-            label="Cost per sq.ft."
-            prefix="₹"
-            value={state.costPerSqFt}
-            onChange={(v) => set('costPerSqFt', v)}
-          />
-          <Field
-            label="Wastage"
-            suffix="%"
-            value={state.wastagePercent}
-            onChange={(v) => set('wastagePercent', v)}
-          />
-        </div>
-
-        {/* Calculated breakdown */}
-        <div className="space-y-2 border-t border-dashed border-slate-200 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Calculated material
-          </p>
-          <CalcRow
-            label="Outer area"
-            sub="(front, back, sides, top, bottom)"
-            value={`${formatNumber(calc.outerArea)} sq.ft.`}
-          />
-          <CalcRow
-            label="Inner shelves"
-            sub="(N × shelf area)"
-            value={`${formatNumber(calc.innerArea)} sq.ft.`}
-          />
-          <CalcRow
-            label="Vertical dividers"
-            value={`${formatNumber(calc.dividerArea)} sq.ft.`}
-          />
-          <CalcRow
-            label="Total material"
-            sub="(outer + inner + dividers)"
-            value={`${formatNumber(calc.totalMaterial)} sq.ft.`}
-          />
-          <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-4 py-3 text-sm">
-            <span className="flex items-center gap-2 font-medium text-indigo-700">
-              <Ruler size={16} /> Total incl. wastage
-            </span>
-            <span className="font-bold text-indigo-800">
-              {formatNumber(calc.actualArea)} sq.ft.
-            </span>
-          </div>
-        </div>
-
-        {/* Edge banding */}
-        <div className="border-t border-dashed border-slate-200 pt-5">
-          <p className="mb-3 text-sm font-medium text-slate-600">Edge Banding (incl. glue)</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field
-              label="Total Running Meters"
-              suffix="m"
+      <div className="mt-6 pt-4 border-t border-slate-100">
+        <p className="text-sm font-medium text-slate-700 mb-3">Edge Banding</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Running meters
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.1"
               value={state.runningMeters}
-              onChange={(v) => set('runningMeters', v)}
+              onChange={(e) => set('runningMeters', e.target.value)}
+              placeholder="0"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
-            <Field
-              label="Cost per meter"
-              prefix="₹"
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Cost per meter (₹)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
               value={state.edgeCostPerMeter}
-              onChange={(v) => set('edgeCostPerMeter', v)}
+              onChange={(e) => set('edgeCostPerMeter', e.target.value)}
+              placeholder="0.00"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
             />
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="rounded-lg bg-indigo-50 px-4 py-3">
-            <p className="text-slate-500">Board Cost</p>
-            <p className="font-semibold text-indigo-700">{formatCurrency(calc.boardCost)}</p>
-          </div>
-          <div className="rounded-lg bg-indigo-50 px-4 py-3">
-            <p className="text-slate-500">Edge Cost</p>
-            <p className="font-semibold text-indigo-700">{formatCurrency(calc.edgeCost)}</p>
-          </div>
-        </div>
+        {calc.edgeCost > 0 && (
+          <p className="mt-2 text-sm text-slate-600">
+            Edge banding total: <span className="font-semibold">{formatCurrency(calc.edgeCost)}</span>
+          </p>
+        )}
       </div>
     </SectionCard>
   )

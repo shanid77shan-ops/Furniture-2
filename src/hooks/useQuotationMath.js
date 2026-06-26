@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { calcMaterialFromDimensions } from '../utils/materialCalc'
+import { calcMaterialFromCabinets } from '../utils/materialCalc'
 
 /**
  * Safely coerce any form value (string | number | '') to a finite number.
@@ -22,12 +22,7 @@ const num = (value) => {
 export function useQuotationMath(state, catalog = []) {
   return useMemo(() => {
     const {
-      height,
-      width,
-      depth,
-      shelvesCount,
-      verticalDividers,
-      thicknessMm,
+      cabinets = [],
       costPerSqFt,
       wastagePercent,
       runningMeters,
@@ -41,18 +36,10 @@ export function useQuotationMath(state, catalog = []) {
       shipping,
     } = state
 
-    // 1. Particle Board (from dimensions) ----------------------------------
-    const material = calcMaterialFromDimensions({
-      height,
-      width,
-      depth,
-      shelvesCount,
-      verticalDividers,
-      thicknessMm,
-      wastagePercent,
-      costPerSqFt,
-    })
+    // 1. Particle Board (from cabinet entries) -----------------------------
+    const material = calcMaterialFromCabinets(cabinets, { wastagePercent, costPerSqFt })
     const {
+      cabinets: cabinetResults,
       outerArea,
       innerArea,
       dividerArea,
@@ -123,6 +110,7 @@ export function useQuotationMath(state, catalog = []) {
     const grandTotal = preTaxTotal + taxAmount + shippingCharge
 
     return {
+      cabinetResults,
       outerArea,
       innerArea,
       dividerArea,
