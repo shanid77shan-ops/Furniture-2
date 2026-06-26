@@ -27,6 +27,7 @@ export function useQuotationMath(state, catalog = []) {
       runningMeters,
       edgeCostPerMeter,
       hardwareEntries = {},
+      enabledCategories = {},
       machiningPerSqFt,
       installationPerSqFt,
       profitMargin,
@@ -51,6 +52,9 @@ export function useQuotationMath(state, catalog = []) {
     const missingHardware = []
 
     ;(catalog || []).forEach((category) => {
+      // Only validate and bill categories the user has enabled.
+      if (!enabledCategories[category.id]) return
+
       ;(category.types || []).forEach((type) => {
         const entry = hardwareEntries[type.id] || {}
         const quantity = num(entry.quantity)

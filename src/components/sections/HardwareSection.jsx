@@ -23,11 +23,14 @@ function HardwareRow({ type, entry, setHardwareEntry }) {
   return (
     <motion.div
       layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
       className={`grid grid-cols-12 items-center gap-2 rounded-lg px-2 py-2 transition sm:gap-3 ${
         unused ? 'bg-slate-50 opacity-60' : missing ? 'bg-amber-50/40' : 'bg-white'
       }`}
     >
-      {/* Item */}
       <div className="col-span-12 sm:col-span-4">
         <p className={`text-sm font-medium ${unused ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
           {type.name}
@@ -38,13 +41,10 @@ function HardwareRow({ type, entry, setHardwareEntry }) {
               <Tag size={11} /> {type.brand}
             </span>
           )}
-          {num(type.price) > 0 && (
-            <span>· catalog {formatCurrency(type.price)}</span>
-          )}
+          {num(type.price) > 0 && <span>· catalog {formatCurrency(type.price)}</span>}
         </div>
       </div>
 
-      {/* Qty */}
       <div className="col-span-3 sm:col-span-2">
         <input
           type="number"
@@ -59,7 +59,6 @@ function HardwareRow({ type, entry, setHardwareEntry }) {
         />
       </div>
 
-      {/* Amount (unit price — editable, saved per line) */}
       <div className="col-span-4 sm:col-span-2">
         <div
           className={`flex items-center rounded-lg border bg-white transition focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100 ${
@@ -80,12 +79,10 @@ function HardwareRow({ type, entry, setHardwareEntry }) {
         </div>
       </div>
 
-      {/* Line total (qty × amount) */}
       <div className="col-span-5 text-right text-sm font-semibold text-slate-700 sm:col-span-2">
         {formatCurrency(lineTotal)}
       </div>
 
-      {/* Unused tick */}
       <div className="col-span-12 flex justify-end sm:col-span-2">
         <label
           className={`inline-flex cursor-pointer select-none items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
@@ -117,52 +114,85 @@ export default function HardwareSection({
   calc,
   catalog,
   setHardwareEntry,
+  setCategoryEnabled,
   onManageCatalog,
 }) {
   const entries = state.hardwareEntries || {}
+  const enabled = state.enabledCategories || {}
   const missingCount = calc.missingHardware.length
+  const enabledCount = Object.values(enabled).filter(Boolean).length
 
   return (
     <SectionCard
       icon={Wrench}
       accent="amber"
       title="Hardware & Accessories"
-      description="Enter quantity and amount (price) for each item, or tick “Unused” to skip."
+      description="Tick a main item to show its types, then enter quantity and amount."
     >
-      {/* Column headers (desktop) */}
       <div className="mb-1 hidden grid-cols-12 gap-3 px-2 text-xs font-medium uppercase tracking-wide text-slate-400 sm:grid">
-        <span className="col-span-4">Item</span>
+        <span className="col-span-4">Main item</span>
         <span className="col-span-2 text-center">Qty</span>
         <span className="col-span-2 text-right">Amount</span>
         <span className="col-span-2 text-right">Total</span>
         <span className="col-span-2 text-right">Skip</span>
       </div>
 
-      <div className="space-y-4">
-        {catalog.map((category) => (
-          <div key={category.id}>
-            <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-amber-600">
-              {category.name}
-            </p>
-            <div className="space-y-1">
+      <div className="space-y-3">
+        {catalog.map((category) => {
+          const isEnabled = !!enabled[category.id]
+          return (
+            <div
+              key={category.id}
+              className={`rounded-xl border transition ${
+                isEnabled ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200 bg-white'
+              }`}
+            >
+              <label className="flex cursor-pointer items-center gap-3 px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={isEnabled}
+                  onChange={(e) => setCategoryEnabled(category.id, e.target.checked)}
+                  className="h-4 w-4 shrink-0 accent-amber-600"
+                />
+                <span className="text-sm font-semibold uppercase tracking-wide text-amber-700">
+                  {category.name}
+                </span>
+                <span className="ml-auto text-xs text-slate-400">
+                  {category.types.length} type{category.types.length !== 1 ? 's' : ''}
+                </span>
+              </label>
+
               <AnimatePresence initial={false}>
-                {category.types.map((type) => (
-                  <HardwareRow
-                    key={type.id}
-                    type={type}
-                    entry={entries[type.id] || {}}
-                    setHardwareEntry={setHardwareEntry}
-                  />
-                ))}
+                {isEnabled && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden border-t border-amber-100"
+                  >
+                    <div className="space-y-1 px-2 py-2">
+                      {category.types.length === 0 ? (
+                        <p className="rounded-lg bg-white px-3 py-2 text-center text-xs text-slate-400">
+                          No types yet — add some in “Manage Catalog”.
+                        </p>
+                      ) : (
+                        category.types.map((type) => (
+                          <HardwareRow
+                            key={type.id}
+                            type={type}
+                            entry={entries[type.id] || {}}
+                            setHardwareEntry={setHardwareEntry}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
               </AnimatePresence>
-              {category.types.length === 0 && (
-                <p className="rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-slate-400">
-                  No types in this item yet — add some in “Manage Catalog”.
-                </p>
-              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {catalog.length === 0 && (
           <p className="rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-400">
@@ -171,12 +201,18 @@ export default function HardwareSection({
         )}
       </div>
 
+      {enabledCount === 0 && catalog.length > 0 && (
+        <div className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          Tick the main items you need for this invoice to show their types.
+        </div>
+      )}
+
       {missingCount > 0 && (
         <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
-            {missingCount} item{missingCount > 1 ? 's have' : ' has'} no quantity yet. Add a quantity
-            or tick <strong>Unused</strong> before saving the invoice.
+            {missingCount} item{missingCount > 1 ? 's need' : ' needs'} a quantity or{' '}
+            <strong>Unused</strong> tick in the enabled sections above.
           </span>
         </div>
       )}

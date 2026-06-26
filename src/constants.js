@@ -154,6 +154,8 @@ export const getInitialState = () => ({
 
   // 3. Hardware & Accessories (quantities keyed by catalog type id)
   hardwareEntries: {},
+  // Main items the user has ticked to show types { [categoryId]: true }
+  enabledCategories: {},
 
   // 4. Labor & Machining
   machiningPerSqFt: '',

@@ -137,6 +137,13 @@ export default function App() {
     }))
   }, [])
 
+  const setCategoryEnabled = useCallback((categoryId, enabled) => {
+    setState((prev) => ({
+      ...prev,
+      enabledCategories: { ...prev.enabledCategories, [categoryId]: enabled },
+    }))
+  }, [])
+
   /* ----------------------------- Catalog CRUD ----------------------------- */
   const addCategory = useCallback(
     async (name) => {
@@ -299,20 +306,36 @@ export default function App() {
     }
   }, [calc.missingHardware.length, commitInvoice])
 
-  const handleEditInvoice = useCallback(async (id) => {
-    try {
-      const row = await api.getInvoice(id)
-      const form = row?.data?.form
-      if (form) {
-        setState({ ...getInitialState(), ...form })
-        setEditingId(id)
-        setInvoicesOpen(false)
-        setToast(`Editing invoice ${row.quote_number || ''}`.trim())
+  const handleEditInvoice = useCallback(
+    async (id) => {
+      try {
+        const row = await api.getInvoice(id)
+        const form = row?.data?.form
+        if (form) {
+          const next = { ...getInitialState(), ...form }
+          const saved = form.enabledCategories || {}
+          if (Object.keys(saved).length === 0) {
+            const enabled = {}
+            catalog.forEach((cat) => {
+              const hasData = cat.types.some((t) => {
+                const e = form.hardwareEntries?.[t.id]
+                return e && (e.quantity || e.unused || e.unitPrice)
+              })
+              if (hasData) enabled[cat.id] = true
+            })
+            next.enabledCategories = enabled
+          }
+          setState(next)
+          setEditingId(id)
+          setInvoicesOpen(false)
+          setToast(`Editing invoice ${row.quote_number || ''}`.trim())
+        }
+      } catch (err) {
+        alert(err.message)
       }
-    } catch (err) {
-      alert(err.message)
-    }
-  }, [])
+    },
+    [catalog],
+  )
 
   const handleDeleteInvoice = useCallback(
     async (id) => {
@@ -437,6 +460,7 @@ export default function App() {
                 calc={calc}
                 catalog={catalog}
                 setHardwareEntry={setHardwareEntry}
+                setCategoryEnabled={setCategoryEnabled}
                 onManageCatalog={() => setCatalogOpen(true)}
               />
             )}
