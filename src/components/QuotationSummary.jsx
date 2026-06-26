@@ -100,7 +100,7 @@ export default function QuotationSummary({
               ) : null,
             )}
             <Row label="Outer panels" value={`${formatNumber(calc.outerArea)} sq.ft.`} />
-            <Row label="Inner shelves" value={`${formatNumber(calc.innerArea)} sq.ft.`} />
+            <Row label="Shelf racks" value={`${formatNumber(calc.innerArea)} sq.ft.`} />
             {calc.dividerArea > 0 && (
               <Row label="Vertical dividers" value={`${formatNumber(calc.dividerArea)} sq.ft.`} />
             )}

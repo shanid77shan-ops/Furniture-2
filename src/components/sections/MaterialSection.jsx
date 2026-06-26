@@ -102,18 +102,29 @@ export default function MaterialSection({
                 ))}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Shelves</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Racks inside vertical
+                  </label>
                   <input
                     type="number"
                     min="0"
                     step="1"
-                    value={cabinet.structure?.shelves ?? ''}
+                    value={
+                      cabinet.structure?.racks_in_vertical ??
+                      cabinet.structure?.shelves ??
+                      ''
+                    }
                     onChange={(e) =>
-                      updateCabinetStructure(cabinet.cabinet_id, 'shelves', e.target.value)
+                      updateCabinetStructure(
+                        cabinet.cabinet_id,
+                        'racks_in_vertical',
+                        e.target.value,
+                      )
                     }
                     placeholder="0"
+                    title="Shelf/rack count inside each vertical section"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                   />
                 </div>
@@ -158,7 +169,7 @@ export default function MaterialSection({
               {result.calculated_area > 0 && (
                 <div className="rounded-lg bg-white border border-slate-100 px-3 py-2 text-xs text-slate-600 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <span>Outer: {formatNumber(result.outerArea, 2)} sq ft</span>
-                  <span>Shelves: {formatNumber(result.innerArea, 2)} sq ft</span>
+                  <span>Racks: {formatNumber(result.innerArea, 2)} sq ft</span>
                   <span>Dividers: {formatNumber(result.dividerArea, 2)} sq ft</span>
                   <span className="font-medium text-emerald-700">
                     Total: {formatNumber(result.calculated_area, 2)} sq ft

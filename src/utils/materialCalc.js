@@ -74,14 +74,14 @@ export function calcOuterArea(heightFt, widthFt, depthFt) {
   return 2 * H * W + 2 * H * D + 2 * W * D
 }
 
-/** Internal shelf area: (N × W × D) / V — shelves divided by vertical dividers. */
-export function calcInnerArea(widthFt, depthFt, shelvesCount, dividerCount) {
+/** Internal shelf area: (R × W × D) / V — racks inside each vertical ÷ vertical dividers. */
+export function calcInnerArea(widthFt, depthFt, racksInVertical, dividerCount) {
   const W = num(widthFt)
   const D = num(depthFt)
-  const N = num(shelvesCount)
+  const R = num(racksInVertical)
   const V = num(dividerCount)
-  if (W <= 0 || D <= 0 || N <= 0 || V <= 0) return 0
-  return (N * W * D) / V
+  if (W <= 0 || D <= 0 || R <= 0 || V <= 0) return 0
+  return (R * W * D) / V
 }
 
 /** Vertical divider panels: V × H × (D−T). */
@@ -97,7 +97,7 @@ export function calcDividerArea(heightFt, depthFt, dividerCount, thicknessMm) {
 /**
  * Calculate one cabinet entry:
  * {
- *   cabinet_id, dimensions: {h,w,d}, structure: {shelves, dividers, material_thickness},
+ *   cabinet_id, dimensions: {h,w,d}, structure: {racks_in_vertical, dividers, material_thickness},
  *   calculated_area, outerArea, innerArea, dividerArea
  * }
  */
@@ -105,12 +105,13 @@ export function calcCabinet(cabinet, unit = 'cm') {
   const h = toFeet(cabinet?.dimensions?.h, unit)
   const w = toFeet(cabinet?.dimensions?.w, unit)
   const d = toFeet(cabinet?.dimensions?.d, unit)
-  const shelves = cabinet?.structure?.shelves
+  const racks =
+    cabinet?.structure?.racks_in_vertical ?? cabinet?.structure?.shelves ?? ''
   const dividers = cabinet?.structure?.dividers
   const thickness = cabinet?.structure?.material_thickness ?? 18
 
   const outerArea = calcOuterArea(h, w, d)
-  const innerArea = calcInnerArea(w, d, shelves, dividers)
+  const innerArea = calcInnerArea(w, d, racks, dividers)
   const dividerArea = calcDividerArea(h, d, dividers, thickness)
   const calculated_area = outerArea + innerArea + dividerArea
 

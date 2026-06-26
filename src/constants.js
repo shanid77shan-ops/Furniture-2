@@ -142,14 +142,25 @@ export const getInitialCatalog = () => [
 export const createCabinet = (overrides = {}) => ({
   cabinet_id: uid(),
   dimensions: { h: '', w: '', d: '' },
-  structure: { shelves: '', dividers: '', material_thickness: 18 },
+  structure: { racks_in_vertical: '', dividers: '', material_thickness: 18 },
   ...overrides,
 })
 
 /** Convert saved estimates that used flat height/width/depth (feet) into cabinets. */
 export const migrateLegacyMaterial = (form = {}) => {
   if (form.cabinets?.length) {
-    return { ...form, dimensionUnit: form.dimensionUnit || 'cm' }
+    return {
+      ...form,
+      dimensionUnit: form.dimensionUnit || 'cm',
+      cabinets: form.cabinets.map((c) => ({
+        ...c,
+        structure: {
+          ...c.structure,
+          racks_in_vertical:
+            c.structure?.racks_in_vertical ?? c.structure?.shelves ?? '',
+        },
+      })),
+    }
   }
 
   const { height, width, depth, shelvesCount, verticalDividers, thicknessMm } = form
@@ -170,7 +181,7 @@ export const migrateLegacyMaterial = (form = {}) => {
           d: depth ?? '',
         },
         structure: {
-          shelves: shelvesCount ?? '',
+          racks_in_vertical: shelvesCount ?? '',
           dividers: verticalDividers ?? '',
           material_thickness: thicknessMm ?? 18,
         },
